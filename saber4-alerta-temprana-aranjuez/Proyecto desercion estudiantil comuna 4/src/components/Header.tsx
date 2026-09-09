@@ -22,10 +22,10 @@ export default function Header({ view, onViewChange }: HeaderProps) {
             </div>
             <div className="min-w-0">
               <h1 className="font-display font-extrabold text-lg sm:text-xl text-slate-900 leading-tight truncate">
-                Saber<span className="text-primary-600">4</span>
+                SIAD<span className="text-primary-600">ARANJUEZ</span>
               </h1>
               <p className="text-[11px] sm:text-xs text-slate-500 leading-tight truncate">
-                Red de Alerta Temprana · Comuna 4 Aranjuez
+                Sistema Inteligente De Acompañamiento Contra La Deserción
               </p>
             </div>
           </div>
