@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { GraduationCap, LayoutGrid, BarChart3, MapPin } from 'lucide-react';
+import { GraduationCap, LayoutGrid, BarChart3, ShieldCheck } from 'lucide-react';
 
 export type ViewMode = 'comunidad' | 'analitica';
 
@@ -46,10 +46,10 @@ export default function Header({ view, onViewChange }: HeaderProps) {
             />
           </div>
 
-          {/* Location badge */}
-          <div className="hidden md:flex items-center gap-1.5 text-sm text-slate-600 bg-slate-100 px-3 py-1.5 rounded-lg">
-            <MapPin className="w-4 h-4 text-primary-600" />
-            <span className="font-medium">Medellín</span>
+          {/* MML: Distintivo de Protección de Datos (Ley 1581 de 2012) */}
+          <div className="hidden lg:flex items-center gap-1.5 text-xs text-slate-600 bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-lg">
+            <ShieldCheck className="w-4 h-4 text-primary-600 shrink-0" />
+            <span className="font-medium">Habeas Data (Ley 1581)</span>
           </div>
         </div>
       </div>
