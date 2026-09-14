@@ -78,7 +78,7 @@ export default function AnalyticsView() {
     return { label: 'Ruta SENA / Articulación Media', icon: BookOpen, color: 'text-warning-700 bg-warning-50 border-warning-200' };
   };
 
-  // Función para exportar los datos filtrados a CSV
+  // Función ajustada con punto y coma (;) para apertura directa en Excel en español
   const exportToCSV = () => {
     const headers = ['ID', 'Estudiante', 'Grado', 'Colegio', 'Barrio', 'Asistencia (%)', 'Promedio', 'Nivel de Riesgo', 'Ruta Recomendada', 'Acudiente', 'Teléfono Acudiente'];
 
@@ -91,7 +91,7 @@ export default function AnalyticsView() {
         `"${s.school}"`,
         `"${s.barrio}"`,
         s.attendance,
-        s.avgGrade,
+        s.avgGrade.toString().replace('.', ','), // Formato decimal para Excel ES
         `"${riskMeta[s.riskLevel].label}"`,
         `"${route.label}"`,
         `"${s.guardian}"`,
@@ -99,8 +99,9 @@ export default function AnalyticsView() {
       ];
     });
 
-    const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' 
-      + [headers.join(','), ...rows.map((e) => e.join(','))].join('\n');
+    // Usamos separador ';' e indicamos explícitamente a Excel la directiva sep=;
+    const csvContent = 'data:text/csv;charset=utf-8,\uFEFFsep=;\n' 
+      + [headers.join(';'), ...rows.map((e) => e.join(';'))].join('\n');
 
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
@@ -460,4 +461,3 @@ function UploadModal({ onClose, onUpload }: { onClose: () => void; onUpload: () 
     </motion.div>
   );
 }
-
