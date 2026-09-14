@@ -78,7 +78,7 @@ export default function AnalyticsView() {
     return { label: 'Ruta SENA / Articulación Media', icon: BookOpen, color: 'text-warning-700 bg-warning-50 border-warning-200' };
   };
 
-  // Función con Blob UTF-8 nativo para resolver la codificación de caracteres en Excel
+  // Función con codificación binaria UTF-8 nativa para Excel
   const exportToCSV = () => {
     const headers = ['ID', 'Estudiante', 'Grado', 'Colegio', 'Barrio', 'Asistencia (%)', 'Promedio', 'Nivel de Riesgo', 'Ruta Recomendada', 'Acudiente', 'Teléfono Acudiente'];
 
@@ -91,7 +91,7 @@ export default function AnalyticsView() {
         `"${s.school}"`,
         `"${s.barrio}"`,
         s.attendance,
-        s.avgGrade.toString().replace('.', ','), // Decimales en formato ES
+        s.avgGrade.toString().replace('.', ','),
         `"${riskMeta[s.riskLevel].label}"`,
         `"${route.label}"`,
         `"${s.guardian}"`,
@@ -99,16 +99,22 @@ export default function AnalyticsView() {
       ];
     });
 
-    // Construcción con delimitador ';' e instrucción explícita de separador
     const csvContent = 'sep=;\n' + [headers.join(';'), ...rows.map((e) => e.join(';'))].join('\n');
 
-    // Blob UTF-8 con la firma BOM (\uFEFF) para forzar a Excel a leer acentos y símbolos correctamente
-    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    // 1. Convertir el string a bytes binarios UTF-8 reales
+    const encoder = new TextEncoder();
+    const csvBytes = encoder.encode(csvContent);
+
+    // 2. Definir el BOM UTF-8 exacto en binario (3 bytes)
+    const bom = new Uint8Array([0xEF, 0xBB, 0xBF]);
+
+    // 3. Unir los bytes del BOM con los datos del CSV
+    const blob = new Blob([bom, csvBytes], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
 
     const link = document.createElement('a');
-    link.setAttribute('href', url);
-    link.setAttribute('download', `Reporte_Saber4_Comuna4_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.href = url;
+    link.download = `Reporte_Saber4_Comuna4_${new Date().toISOString().slice(0, 10)}.csv`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
