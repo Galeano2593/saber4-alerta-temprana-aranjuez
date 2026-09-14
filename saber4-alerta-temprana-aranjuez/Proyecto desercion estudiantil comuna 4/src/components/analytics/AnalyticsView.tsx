@@ -78,7 +78,7 @@ export default function AnalyticsView() {
     return { label: 'Ruta SENA / Articulación Media', icon: BookOpen, color: 'text-warning-700 bg-warning-50 border-warning-200' };
   };
 
-  // Función ajustada con punto y coma (;) para apertura directa en Excel en español
+  // Función con Blob UTF-8 nativo para resolver la codificación de caracteres en Excel
   const exportToCSV = () => {
     const headers = ['ID', 'Estudiante', 'Grado', 'Colegio', 'Barrio', 'Asistencia (%)', 'Promedio', 'Nivel de Riesgo', 'Ruta Recomendada', 'Acudiente', 'Teléfono Acudiente'];
 
@@ -91,7 +91,7 @@ export default function AnalyticsView() {
         `"${s.school}"`,
         `"${s.barrio}"`,
         s.attendance,
-        s.avgGrade.toString().replace('.', ','), // Formato decimal para Excel ES
+        s.avgGrade.toString().replace('.', ','), // Decimales en formato ES
         `"${riskMeta[s.riskLevel].label}"`,
         `"${route.label}"`,
         `"${s.guardian}"`,
@@ -99,17 +99,20 @@ export default function AnalyticsView() {
       ];
     });
 
-    // Usamos separador ';' e indicamos explícitamente a Excel la directiva sep=;
-    const csvContent = 'data:text/csv;charset=utf-8,\uFEFFsep=;\n' 
-      + [headers.join(';'), ...rows.map((e) => e.join(';'))].join('\n');
+    // Construcción con delimitador ';' e instrucción explícita de separador
+    const csvContent = 'sep=;\n' + [headers.join(';'), ...rows.map((e) => e.join(';'))].join('\n');
 
-    const encodedUri = encodeURI(csvContent);
+    // Blob UTF-8 con la firma BOM (\uFEFF) para forzar a Excel a leer acentos y símbolos correctamente
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+
     const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
+    link.setAttribute('href', url);
     link.setAttribute('download', `Reporte_Saber4_Comuna4_${new Date().toISOString().slice(0, 10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   const notify = (id: string) => {
