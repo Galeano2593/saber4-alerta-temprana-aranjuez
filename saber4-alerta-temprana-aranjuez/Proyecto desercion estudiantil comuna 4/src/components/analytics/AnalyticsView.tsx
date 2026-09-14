@@ -2,11 +2,11 @@ import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import {
   UploadCloud, FileSpreadsheet, Filter, Bell, Search, CheckCircle2,
-  TrendingUp, AlertTriangle, Users, X,
+  TrendingUp, AlertTriangle, Users, X, BookOpen, GraduationCap, ShieldAlert
 } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  LineChart, Line, Legend, PieChart, Pie, Cell,
+  LineChart, Line, Legend,
 } from 'recharts';
 import {
   STUDENTS, BARRIOS_COMUNA4, riskMeta, MONTHLY_TREND, RISK_BY_BARRIO,
@@ -17,6 +17,7 @@ export default function AnalyticsView() {
   const [students, setStudents] = useState<StudentRecord[]>(STUDENTS);
   const [barrioFilter, setBarrioFilter] = useState<string>('todos');
   const [riskFilter, setRiskFilter] = useState<string>('todos');
+  const [gradeFilter, setGradeFilter] = useState<string>('todos'); // MML: Filtro de Grados
   const [search, setSearch] = useState('');
   const [uploadOpen, setUploadOpen] = useState(false);
   const [notifyingId, setNotifyingId] = useState<string | null>(null);
@@ -26,10 +27,11 @@ export default function AnalyticsView() {
     return students.filter((s) => {
       if (barrioFilter !== 'todos' && s.barrio !== barrioFilter) return false;
       if (riskFilter !== 'todos' && s.riskLevel !== riskFilter) return false;
+      if (gradeFilter !== 'todos' && s.grade !== gradeFilter) return false;
       if (search && !s.name.toLowerCase().includes(search.toLowerCase())) return false;
       return true;
     });
-  }, [students, barrioFilter, riskFilter, search]);
+  }, [students, barrioFilter, riskFilter, gradeFilter, search]);
 
   const counts = useMemo(() => {
     const c: Record<RiskLevel, number> = { estable: 0, acompanamiento: 0, critico: 0 };
@@ -37,11 +39,43 @@ export default function AnalyticsView() {
     return c;
   }, [students]);
 
-  const pieData = [
-    { name: 'Estable', value: counts.estable, color: riskMeta.estable.color },
-    { name: 'Acompañamiento', value: counts.acompanamiento, color: riskMeta.acompanamiento.color },
-    { name: 'Crítico', value: counts.critico, color: riskMeta.critico.color },
-  ];
+  // MML: Cálculo consolidado del riesgo por dimensión (Académico, Económico, Personal, Familiar)
+  const riskDimensionsData = useMemo(() => {
+    const total = filtered.length || 1;
+    let acad = 0, econ = 0, pers = 0, fam = 0;
+
+    filtered.forEach((s) => {
+      if (s.riskBreakdown) {
+        acad += s.riskBreakdown.academico;
+        econ += s.riskBreakdown.economico;
+        pers += s.riskBreakdown.personal;
+        fam += s.riskBreakdown.familiar;
+      } else {
+        acad += s.riskLevel === 'critico' ? 80 : s.riskLevel === 'acompanamiento' ? 45 : 15;
+        econ += s.riskLevel === 'critico' ? 75 : s.riskLevel === 'acompanamiento' ? 50 : 20;
+        pers += s.riskLevel === 'critico' ? 60 : s.riskLevel === 'acompanamiento' ? 30 : 10;
+        fam += s.riskLevel === 'critico' ? 70 : s.riskLevel === 'acompanamiento' ? 35 : 15;
+      }
+    });
+
+    return [
+      { dimension: 'Académico', nivel: Math.round(acad / total), fill: '#ef4444' },
+      { dimension: 'Económico', nivel: Math.round(econ / total), fill: '#f59e0b' },
+      { dimension: 'Familiar', nivel: Math.round(fam / total), fill: '#3b82f6' },
+      { dimension: 'Personal', nivel: Math.round(pers / total), fill: '#10b981' },
+    ];
+  }, [filtered]);
+
+  // MML: Asignación de Rutas de Acompañamiento por perfil
+  const getRecommendedRoute = (student: StudentRecord) => {
+    if (student.riskLevel === 'critico') {
+      return { label: 'Ruta Psicosocial / Permanencia', icon: ShieldAlert, color: 'text-error-700 bg-error-50 border-error-200' };
+    }
+    if (student.grade === '11°' || student.grade === '10°') {
+      return { label: 'Ruta Sapiencia / Educación Superior', icon: GraduationCap, color: 'text-primary-700 bg-primary-50 border-primary-200' };
+    }
+    return { label: 'Ruta SENA / Articulación Media', icon: BookOpen, color: 'text-warning-700 bg-warning-50 border-warning-200' };
+  };
 
   const notify = (id: string) => {
     setNotifyingId(id);
@@ -53,11 +87,10 @@ export default function AnalyticsView() {
 
   const simulateUpload = () => {
     setUploadOpen(false);
-    // Add a couple of demo rows to show "ingested" data
     const extra: StudentRecord[] = [
-      { id: `u${Date.now()}-1`, name: 'Laura Vásquez', grade: '8°', school: 'Sede La Piñuela', barrio: 'La Piñuela', attendance: 72, avgGrade: 2.7, riskLevel: 'critico', guardian: 'Óscar Vásquez', guardianPhone: '+57 300 555 0211', lastAlert: 'Importado' },
-      { id: `u${Date.now()}-2`, name: 'Kevin Ospina', grade: '10°', school: 'Sede Universidad (Sector)', barrio: 'Universidad (Sector)', attendance: 89, avgGrade: 3.4, riskLevel: 'acompanamiento', guardian: 'Nancy Ospina', guardianPhone: '+57 311 555 0222', lastAlert: 'Importado' },
-      { id: `u${Date.now()}-3`, name: 'Diana Restrepo', grade: '9°', school: 'Sede Moravia', barrio: 'Moravia', attendance: 77, avgGrade: 2.9, riskLevel: 'critico', guardian: 'Fernando Restrepo', guardianPhone: '+57 312 555 0230', lastAlert: 'Importado' },
+      { id: `u${Date.now()}-1`, name: 'Laura Vásquez', grade: '9°', school: 'Sede La Piñuela', barrio: 'La Piñuela', attendance: 72, avgGrade: 2.7, riskLevel: 'critico', guardian: 'Óscar Vásquez', guardianPhone: '+57 300 555 0211', lastAlert: 'Importado', riskBreakdown: { academico: 85, economico: 80, personal: 70, familiar: 75 } },
+      { id: `u${Date.now()}-2`, name: 'Kevin Ospina', grade: '10°', school: 'Sede Universidad (Sector)', barrio: 'Universidad (Sector)', attendance: 89, avgGrade: 3.4, riskLevel: 'acompanamiento', guardian: 'Nancy Ospina', guardianPhone: '+57 311 555 0222', lastAlert: 'Importado', riskBreakdown: { academico: 40, economico: 45, personal: 30, familiar: 35 } },
+      { id: `u${Date.now()}-3`, name: 'Diana Restrepo', grade: '9°', school: 'Sede Moravia', barrio: 'Moravia', attendance: 77, avgGrade: 2.9, riskLevel: 'critico', guardian: 'Fernando Restrepo', guardianPhone: '+57 312 555 0230', lastAlert: 'Importado', riskBreakdown: { academico: 80, economico: 75, personal: 65, familiar: 70 } },
     ];
     setStudents((s) => [...extra, ...s]);
   };
@@ -70,26 +103,44 @@ export default function AnalyticsView() {
       className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12"
     >
       {/* Heading */}
-      <div className="mb-8">
-        <span className="text-xs font-bold uppercase tracking-wider text-primary-600">Gestión</span>
-        <h2 className="mt-1.5 font-display text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-          Panel de Control Docente
-        </h2>
-        <p className="mt-2 text-slate-600 max-w-2xl">
-          Carga planillas de seguimiento, filtra por barrio y nivel de riesgo, y notifica a los acudientes de los estudiantes que necesitan acompañamiento.
-        </p>
+      <div className="mb-8 flex flex-col sm:flex-row justify-between sm:items-end gap-4">
+        <div>
+          <span className="text-xs font-bold uppercase tracking-wider text-primary-600">Saber4 — Comuna 4 Aranjuez</span>
+          <h2 className="mt-1.5 font-display text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+            Panel de Control y Analítica Predictiva
+          </h2>
+          <p className="mt-2 text-slate-600 max-w-2xl">
+            Monitoreo multidimensional para la identificación oportuna del riesgo de deserción escolar en los grados 9.º, 10.º y 11.º.
+          </p>
+        </div>
+        <div className="text-xs text-slate-400 border border-slate-200 rounded-lg p-2 bg-slate-50">
+          🔒 <span className="font-semibold text-slate-600">Protección de Datos:</span> Ley 1581 de 2012 (Menores de edad)
+        </div>
       </div>
 
       {/* KPI cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <KpiCard icon={<Users className="w-5 h-5" />} label="Estudiantes" value={`${students.length}`} accent="primary" />
+        <KpiCard icon={<Users className="w-5 h-5" />} label="Estudiantes Grados 9°-11°" value={`${students.length}`} accent="primary" />
         <KpiCard icon={<CheckCircle2 className="w-5 h-5" />} label="Estables" value={`${counts.estable}`} accent="success" />
         <KpiCard icon={<AlertTriangle className="w-5 h-5" />} label="Acompañamiento" value={`${counts.acompanamiento}`} accent="warning" />
-        <KpiCard icon={<TrendingUp className="w-5 h-5" />} label="Críticos" value={`${counts.critico}`} accent="error" />
+        <KpiCard icon={<TrendingUp className="w-5 h-5" />} label="Riesgo Crítico" value={`${counts.critico}`} accent="error" />
       </div>
 
       {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        {/* MML: Gráfico de Factores Multidimensionales de Riesgo */}
+        <ChartCard title="Análisis del Riesgo por Dimensiones (%)">
+          <ResponsiveContainer width="100%" height={260}>
+            <BarChart data={riskDimensionsData} layout="vertical" margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" horizontal={false} />
+              <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 12, fill: '#64748b' }} unit="%" />
+              <YAxis dataKey="dimension" type="category" tick={{ fontSize: 12, fill: '#64748b' }} width={80} />
+              <Tooltip contentStyle={{ borderRadius: 12, border: '1px solid #e2e8f0', fontSize: 12 }} formatter={(val) => [`${val}%`, 'Nivel de Riesgo']} />
+              <Bar dataKey="nivel" radius={[0, 4, 4, 0]} barSize={22} />
+            </BarChart>
+          </ResponsiveContainer>
+        </ChartCard>
+
         <ChartCard title="Tendencia mensual: asistencia vs alertas">
           <ResponsiveContainer width="100%" height={260}>
             <LineChart data={MONTHLY_TREND} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
@@ -105,15 +156,14 @@ export default function AnalyticsView() {
           </ResponsiveContainer>
         </ChartCard>
 
-        <ChartCard title="Distribución de riesgo por barrio">
+        <ChartCard title="Distribución por barrio (Comuna 4)">
           <ResponsiveContainer width="100%" height={260}>
             <BarChart data={RISK_BY_BARRIO} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
               <XAxis dataKey="barrio" tick={{ fontSize: 10, fill: '#64748b' }} angle={-35} textAnchor="end" height={70} interval={0} />
               <YAxis tick={{ fontSize: 12, fill: '#64748b' }} />
               <Tooltip contentStyle={{ borderRadius: 12, border: '1px solid #e2e8f0', fontSize: 12 }} />
-              <Legend wrapperStyle={{ fontSize: 12 }} />
-              <Bar dataKey="estable" stackId="a" fill="#10b981" name="Estable" radius={[0, 0, 0, 0]} />
+              <Bar dataKey="estable" stackId="a" fill="#10b981" name="Estable" />
               <Bar dataKey="acompanamiento" stackId="a" fill="#f59e0b" name="Acompañamiento" />
               <Bar dataKey="critico" stackId="a" fill="#ef4444" name="Crítico" radius={[4, 4, 0, 0]} />
             </BarChart>
@@ -132,9 +182,21 @@ export default function AnalyticsView() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Buscar estudiante…"
-                className="pl-9 pr-3 py-2 rounded-lg bg-slate-100 text-sm outline-none focus:ring-2 ring-primary-500 w-48"
+                className="pl-9 pr-3 py-2 rounded-lg bg-slate-100 text-sm outline-none focus:ring-2 ring-primary-500 w-44"
               />
             </div>
+            {/* MML: Grado filter */}
+            <FilterSelect
+              icon={<BookOpen className="w-4 h-4" />}
+              value={gradeFilter}
+              onChange={setGradeFilter}
+              options={[
+                { value: 'todos', label: 'Todos los grados (9°-11°)' },
+                { value: '9°', label: 'Grado 9.º' },
+                { value: '10°', label: 'Grado 10.º' },
+                { value: '11°', label: 'Grado 11.º' },
+              ]}
+            />
             {/* Barrio filter */}
             <FilterSelect
               icon={<Filter className="w-4 h-4" />}
@@ -179,7 +241,7 @@ export default function AnalyticsView() {
                 <th className="px-4 py-3 font-semibold">Asistencia</th>
                 <th className="px-4 py-3 font-semibold">Promedio</th>
                 <th className="px-4 py-3 font-semibold">Riesgo</th>
-                <th className="px-4 py-3 font-semibold">Última alerta</th>
+                <th className="px-4 py-3 font-semibold">Ruta Recomendada (MML)</th>
                 <th className="px-4 py-3 font-semibold text-right">Acción</th>
               </tr>
             </thead>
@@ -187,10 +249,13 @@ export default function AnalyticsView() {
               {filtered.map((s) => {
                 const meta = riskMeta[s.riskLevel];
                 const notified = notifiedIds.has(s.id);
+                const route = getRecommendedRoute(s);
+                const RouteIcon = route.icon;
+
                 return (
                   <tr key={s.id} className="hover:bg-slate-50 transition-colors">
                     <td className="px-4 py-3 font-medium text-slate-800">{s.name}</td>
-                    <td className="px-4 py-3 text-slate-600">{s.grade}</td>
+                    <td className="px-4 py-3 font-semibold text-primary-700">{s.grade}</td>
                     <td className="px-4 py-3 text-slate-600">{s.school}</td>
                     <td className="px-4 py-3 text-slate-600">{s.barrio}</td>
                     <td className="px-4 py-3">
@@ -205,7 +270,12 @@ export default function AnalyticsView() {
                         {meta.label}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-slate-500 text-xs">{s.lastAlert}</td>
+                    <td className="px-4 py-3">
+                      <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium border ${route.color}`}>
+                        <RouteIcon className="w-3.5 h-3.5" />
+                        {route.label}
+                      </span>
+                    </td>
                     <td className="px-4 py-3 text-right">
                       <button
                         onClick={() => notify(s.id)}
@@ -341,9 +411,6 @@ function UploadModal({ onClose, onUpload }: { onClose: () => void; onUpload: () 
         >
           Simular carga de datos
         </button>
-        <p className="mt-3 text-center text-xs text-slate-400">
-          Esta es una demostración: se agregarán filas de ejemplo a la tabla.
-        </p>
       </motion.div>
     </motion.div>
   );
