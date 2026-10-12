@@ -216,7 +216,7 @@ export default function AnalyticsView() {
     }, 2000);
   };
 
-  // Procesamiento flexible de archivos Excel (.xlsx/.xls) y CSV (.csv)
+  // Procesamiento corregido de Excel/CSV
   const processExcelFile = (file: File) => {
     const reader = new FileReader();
 
@@ -230,21 +230,10 @@ export default function AnalyticsView() {
 
         if (rawMatrix.length > 0) {
           const parsedStudents: StudentRecord[] = rawMatrix.map((row, idx) => {
-            // Nombre del estudiante o institución
+            // Nombre del estudiante
             const nameVal = row.Estudiante || row.estudiante || row.nombre_institucion_due || row.establecimiento_educativo || `Estudiante #${idx + 1}`;
             const genderTag = row.sexo ? ` (${row.sexo === 'hombres' ? 'Masc.' : row.sexo === 'mujeres' ? 'Fem.' : row.sexo})` : '';
             const fullName = `${nameVal}${genderTag}`;
-
-            // Nivel de riesgo
-            const rawRisk = (row['Nivel de Riesgo'] || row.nivel_riesgo || row.riesgo || '').toString().trim().toLowerCase();
-            let riskLevel: RiskLevel = 'estable';
-            if (rawRisk.includes('critico') || rawRisk.includes('crítico') || rawRisk.includes('alto')) {
-              riskLevel = 'critico';
-            } else if (rawRisk.includes('medio') || rawRisk.includes('acompañamiento') || rawRisk.includes('acompaniamiento')) {
-              riskLevel = 'acompanamiento';
-            } else {
-              riskLevel = 'estable';
-            }
 
             // Asistencia
             const rawAttendance = row['Asistencia (%)'] || row.asistencia;
@@ -257,12 +246,30 @@ export default function AnalyticsView() {
               calculatedAttendance = Math.max(65, Math.min(98, Math.round(100 - (reprobRate * 1.2) - (dropRate * 2))));
             }
 
-            // Promedio
+            // Promedio (Ajuste preciso de escala 0.0 - 5.0)
             const rawProm = row.Promedio || row.promedio || row.punt_global_promedio;
             let avgGradeVal = 3.5;
             if (rawProm !== undefined) {
               const parsedP = parseFloat(rawProm.toString().replace(',', '.'));
-              avgGradeVal = parsedP > 5 ? parseFloat((parsedP / 50).toFixed(1)) : parsedP;
+              if (parsedP > 50) {
+                avgGradeVal = parseFloat((parsedP / 100).toFixed(1));
+              } else if (parsedP > 5) {
+                avgGradeVal = parseFloat((parsedP / 10).toFixed(1));
+              } else {
+                avgGradeVal = parseFloat(parsedP.toFixed(1));
+              }
+            }
+
+            // Nivel de Riesgo (Recalculado según desempeño académico y asistencia)
+            const rawRisk = (row['Nivel de Riesgo'] || row.nivel_riesgo || row.riesgo || '').toString().trim().toLowerCase();
+            let riskLevel: RiskLevel = 'estable';
+
+            if (avgGradeVal < 3.0 || calculatedAttendance < 75 || rawRisk.includes('critico') || rawRisk.includes('crítico') || rawRisk.includes('alto')) {
+              riskLevel = 'critico';
+            } else if (avgGradeVal < 3.5 || calculatedAttendance < 85 || rawRisk.includes('medio') || rawRisk.includes('acompañamiento') || rawRisk.includes('acompaniamiento')) {
+              riskLevel = 'acompanamiento';
+            } else {
+              riskLevel = 'estable';
             }
 
             const rawBarrio = (row.Barrio || row.barrio || 'ARANJUEZ').toString().trim().toUpperCase();
@@ -282,7 +289,7 @@ export default function AnalyticsView() {
               guardianPhone: row['Teléfono Acudiente'] || row.telefono_acudiente || row.telefono || '+57 300 000 0000',
               lastAlert: `IRTE: ${row.irte_c4 ? parseFloat(row.irte_c4).toFixed(1) : '35.0'}/100`,
               riskBreakdown: {
-                academico: Math.round(row.riesgo_reprobacion || (riskLevel === 'critico' ? 80 : 35)),
+                academico: Math.round(row.riesgo_reprobacion || (riskLevel === 'critico' ? 80 : avgGradeVal < 3.5 ? 50 : 20)),
                 economico: Math.round(row.riesgo_matricula || (riskLevel === 'critico' ? 75 : 30)),
                 personal: Math.round(row.riesgo_saber11 || (riskLevel === 'critico' ? 60 : 25)),
                 familiar: Math.round(row.riesgo_desercion || (riskLevel === 'critico' ? 70 : 20)),
