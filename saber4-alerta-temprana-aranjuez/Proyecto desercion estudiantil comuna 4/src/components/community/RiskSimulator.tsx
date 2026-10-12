@@ -120,7 +120,7 @@ export default function RiskSimulator() {
               />
             </div>
 
-            {/* Termómetro de 4 colores */}
+            {/* Termómetro de 4 colores corregido */}
             <div className="mt-10">
               <div className="flex items-center justify-between mb-3">
                 <span className="flex items-center gap-2 text-sm font-bold text-slate-700">
@@ -132,17 +132,17 @@ export default function RiskSimulator() {
                 </span>
               </div>
 
-              {/* Barra dividida en los 4 colores reales */}
+              {/* Barra alineada: De Rojo (Crítico) en 0% a Verde (Estable) en 100% */}
               <div className="relative h-8 rounded-full overflow-hidden flex ring-1 ring-slate-200">
-                <div className="w-1/4 bg-emerald-500 h-full" title="Bajo" />
-                <div className="w-1/4 bg-amber-500 h-full" title="Medio" />
-                <div className="w-1/4 bg-orange-500 h-full" title="Alto" />
-                <div className="w-1/4 bg-red-500 h-full" title="Crítico" />
+                <div className="w-1/4 bg-red-500 h-full" title="Riesgo Crítico" />
+                <div className="w-1/4 bg-orange-500 h-full" title="Riesgo Alto" />
+                <div className="w-1/4 bg-amber-500 h-full" title="Riesgo Medio" />
+                <div className="w-1/4 bg-emerald-500 h-full" title="Estable / Bajo" />
 
-                {/* Marcador dinámico */}
+                {/* Indicador blanco en posición según el puntaje */}
                 <motion.div
                   className="absolute top-0 bottom-0 w-2 bg-white rounded-full shadow-lg ring-2 ring-slate-900"
-                  animate={{ left: `${Math.min(95, Math.max(5, score))}%` }}
+                  animate={{ left: `${Math.min(96, Math.max(4, score))}%` }}
                   transition={{ type: 'spring', stiffness: 200, damping: 24 }}
                   style={{ transform: 'translateX(-50%)' }}
                 />
@@ -161,7 +161,7 @@ export default function RiskSimulator() {
             </div>
           </div>
 
-          {/* Ruta */}
+          {/* Ruta Activa */}
           <motion.div
             key={risk}
             initial={{ opacity: 0, x: 20 }}
