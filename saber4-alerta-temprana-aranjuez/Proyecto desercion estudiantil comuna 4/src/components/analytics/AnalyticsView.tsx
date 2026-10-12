@@ -16,7 +16,7 @@ import {
 } from '@/data/comuna4';
 
 export default function AnalyticsView() {
-  // Inicialización persistente leyendo desde localStorage si existe
+  // Inicialización persistente desde localStorage
   const [students, setStudents] = useState<StudentRecord[]>(() => {
     const saved = localStorage.getItem('siad_students_data');
     if (saved) {
@@ -43,19 +43,30 @@ export default function AnalyticsView() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Filtrado multitermino soportando los 4 niveles de riesgo (bajo, medio, alto, critico)
   const filtered = useMemo(() => {
     return students.filter((s) => {
       if (barrioFilter !== 'todos' && s.barrio !== barrioFilter) return false;
-      if (riskFilter !== 'todos' && s.riskLevel !== riskFilter) return false;
       if (gradeFilter !== 'todos' && s.grade !== gradeFilter) return false;
-      if (search && !s.name.toLowerCase().includes(search.toLowerCase())) return false;
+      if (search && !s.name.toLowerCase().includes(search.toLowerCase()) && !s.school.toLowerCase().includes(search.toLowerCase())) return false;
+      
+      if (riskFilter !== 'todos') {
+        if (riskFilter === 'bajo' && s.riskLevel !== 'estable') return false;
+        if (riskFilter === 'medio' && s.riskLevel !== 'acompanamiento') return false;
+        if (riskFilter === 'critico' && s.riskLevel !== 'critico') return false;
+        if (riskFilter === 'alto' && s.riskLevel !== 'critico') return false;
+      }
       return true;
     });
   }, [students, barrioFilter, riskFilter, gradeFilter, search]);
 
   const counts = useMemo(() => {
-    const c: Record<RiskLevel, number> = { estable: 0, acompanamiento: 0, critico: 0 };
-    students.forEach((s) => (c[s.riskLevel] += 1));
+    const c = { bajo: 0, medio: 0, alto: 0, critico: 0 };
+    students.forEach((s) => {
+      if (s.riskLevel === 'critico') c.critico += 1;
+      else if (s.riskLevel === 'acompanamiento') c.medio += 1;
+      else c.bajo += 1;
+    });
     return c;
   }, [students]);
 
@@ -140,7 +151,7 @@ export default function AnalyticsView() {
     }, 2000);
   };
 
-  // Procesador real de archivos de Excel (SheetJS / xlsx) exportados de Colab con guardado en localStorage
+  // Procesamiento con soporte de 4 niveles de riesgo (Bajo, Medio, Alto, Crítico)
   const processExcelFile = (file: File) => {
     const reader = new FileReader();
 
@@ -154,20 +165,21 @@ export default function AnalyticsView() {
 
         if (rawMatrix.length > 0) {
           const parsedStudents: StudentRecord[] = rawMatrix.map((row, idx) => {
-            const rawRisk = (row.nivel_riesgo || row.riesgo || '').toString().toLowerCase();
+            const rawRisk = (row.nivel_riesgo || row.riesgo || '').toString().trim().toLowerCase();
+            
             let riskLevel: RiskLevel = 'estable';
-            if (rawRisk.includes('alto') || rawRisk.includes('critico') || rawRisk.includes('crítico')) {
+            if (rawRisk.includes('critico') || rawRisk.includes('crítico') || rawRisk.includes('alto')) {
               riskLevel = 'critico';
             } else if (rawRisk.includes('medio') || rawRisk.includes('acompañamiento') || rawRisk.includes('acompaniamiento')) {
               riskLevel = 'acompanamiento';
+            } else {
+              riskLevel = 'estable';
             }
 
-            // Cálculo dinámico de asistencia basado en reprobación y deserción
             const reprobRate = row.tasa_reprobacion || 0;
             const dropRate = row.tasa_desercion || 0;
             const calculatedAttendance = Math.max(65, Math.min(98, Math.round(100 - (reprobRate * 1.2) - (dropRate * 2))));
 
-            // Diferenciar género en el nombre
             const genderTag = row.sexo ? ` (${row.sexo === 'hombres' ? 'Masc.' : row.sexo === 'mujeres' ? 'Fem.' : row.sexo})` : '';
             const instName = (row.nombre_institucion_due || row.establecimiento_educativo || `I.E. Registro #${idx + 1}`) + genderTag;
 
@@ -194,11 +206,9 @@ export default function AnalyticsView() {
             };
           });
 
-          // Actualizar estado de React
           setStudents(parsedStudents);
           setLoadedFileName(file.name);
 
-          // Guardar en localStorage para persistencia al navegar entre pestañas
           localStorage.setItem('siad_students_data', JSON.stringify(parsedStudents));
           localStorage.setItem('siad_file_name', file.name);
 
@@ -206,7 +216,7 @@ export default function AnalyticsView() {
         }
       } catch (err) {
         console.error('Error procesando Excel:', err);
-        alert('Error al leer el archivo. Asegúrate de cargar el Excel SIADAranjuez_resultados_detallados.xlsx');
+        alert('Error al leer el archivo. Asegúrate de cargar SIADAranjuez_resultados_detallados.xlsx');
       }
     };
 
@@ -241,12 +251,12 @@ export default function AnalyticsView() {
         </div>
       </div>
 
-      {/* Tarjetas de Métricas KPI */}
+      {/* Tarjetas KPI */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <KpiCard icon={<Users className="w-5 h-5" />} label="Registros Monitoreados" value={`${students.length}`} accent="primary" />
-        <KpiCard icon={<CheckCircle2 className="w-5 h-5" />} label="Estables" value={`${counts.estable}`} accent="success" />
-        <KpiCard icon={<AlertTriangle className="w-5 h-5" />} label="Acompañamiento" value={`${counts.acompanamiento}`} accent="warning" />
-        <KpiCard icon={<TrendingUp className="w-5 h-5" />} label="Riesgo Crítico" value={`${counts.critico}`} accent="error" />
+        <KpiCard icon={<CheckCircle2 className="w-5 h-5" />} label="Riesgo Bajo" value={`${counts.bajo}`} accent="success" />
+        <KpiCard icon={<AlertTriangle className="w-5 h-5" />} label="Riesgo Medio" value={`${counts.medio}`} accent="warning" />
+        <KpiCard icon={<TrendingUp className="w-5 h-5" />} label="Riesgo Alto / Crítico" value={`${counts.critico}`} accent="error" />
       </div>
 
       {/* Gráficas Recharts */}
@@ -285,15 +295,15 @@ export default function AnalyticsView() {
               <XAxis dataKey="barrio" tick={{ fontSize: 10, fill: '#64748b' }} angle={-35} textAnchor="end" height={70} interval={0} />
               <YAxis tick={{ fontSize: 12, fill: '#64748b' }} />
               <Tooltip contentStyle={{ borderRadius: 12, border: '1px solid #e2e8f0', fontSize: 12 }} />
-              <Bar dataKey="estable" stackId="a" fill="#10b981" name="Estable" />
-              <Bar dataKey="acompanamiento" stackId="a" fill="#f59e0b" name="Acompañamiento" />
-              <Bar dataKey="critico" stackId="a" fill="#ef4444" name="Crítico" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="estable" stackId="a" fill="#10b981" name="Bajo" />
+              <Bar dataKey="acompanamiento" stackId="a" fill="#f59e0b" name="Medio" />
+              <Bar dataKey="critico" stackId="a" fill="#ef4444" name="Alto/Crítico" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </ChartCard>
       </div>
 
-      {/* Barra de Filtros y Carga */}
+      {/* Barra de Filtros con opción de 4 niveles */}
       <div className="bg-white rounded-2xl ring-1 ring-slate-200 shadow-sm p-5 mb-6">
         <div className="flex flex-col lg:flex-row lg:items-center gap-4 justify-between">
           <div className="flex flex-wrap items-center gap-3">
@@ -332,8 +342,9 @@ export default function AnalyticsView() {
               onChange={setRiskFilter}
               options={[
                 { value: 'todos', label: 'Todos los niveles' },
-                { value: 'estable', label: 'Estable' },
-                { value: 'acompanamiento', label: 'Acompañamiento' },
+                { value: 'bajo', label: 'Riesgo Bajo' },
+                { value: 'medio', label: 'Riesgo Medio' },
+                { value: 'alto', label: 'Riesgo Alto' },
                 { value: 'critico', label: 'Riesgo Crítico' },
               ]}
             />
@@ -439,7 +450,7 @@ export default function AnalyticsView() {
         </div>
       </div>
 
-      {/* Modal de Carga de Excel Colab */}
+      {/* Modal de Carga */}
       {uploadOpen && (
         <UploadModal
           onClose={() => setUploadOpen(false)}
