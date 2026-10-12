@@ -145,7 +145,7 @@ export default function InteractiveMap() {
     if (!search) return dynamicSchools;
     const term = cleanText(search);
     return dynamicSchools.filter(s => 
-      cleanText(s.name).includes(term) || cleanText(s.barrio).includes(term) || cleanText((s as any).address).includes(term)
+      cleanText(s.name).includes(term) || cleanText(s.barrio).includes(term) || cleanText((s as { address?: string }).address || '').includes(term)
     );
   }, [dynamicSchools, search]);
 
@@ -204,7 +204,7 @@ export default function InteractiveMap() {
 
                 <p className="text-xs text-slate-500 mt-2 flex items-center gap-1">
                   <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                  <span className="truncate">{(s as any).address}</span>
+                  <span className="truncate">{(s as { address?: string }).address}</span>
                 </p>
               </div>
 
@@ -229,7 +229,7 @@ export default function InteractiveMap() {
 
 function SchoolModal({ school, onClose }: { school: School; onClose: () => void }) {
   const meta = riskMeta[school.riskLevel];
-  const fullAddress = (school as any).address || `Barrio ${school.barrio}, Aranjuez`;
+  const fullAddress = (school as { address?: string }).address || `Barrio ${school.barrio}, Aranjuez`;
 
   return (
     <motion.div
