@@ -16,7 +16,23 @@ import {
 } from '@/data/comuna4';
 
 export default function AnalyticsView() {
-  const [students, setStudents] = useState<StudentRecord[]>(STUDENTS);
+  // Inicialización persistente leyendo desde localStorage si existe
+  const [students, setStudents] = useState<StudentRecord[]>(() => {
+    const saved = localStorage.getItem('siad_students_data');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error('Error leyendo localStorage:', e);
+      }
+    }
+    return STUDENTS;
+  });
+
+  const [loadedFileName, setLoadedFileName] = useState<string | null>(() => {
+    return localStorage.getItem('siad_file_name');
+  });
+
   const [barrioFilter, setBarrioFilter] = useState<string>('todos');
   const [riskFilter, setRiskFilter] = useState<string>('todos');
   const [gradeFilter, setGradeFilter] = useState<string>('todos');
@@ -24,7 +40,6 @@ export default function AnalyticsView() {
   const [uploadOpen, setUploadOpen] = useState(false);
   const [notifyingId, setNotifyingId] = useState<string | null>(null);
   const [notifiedIds, setNotifiedIds] = useState<Set<string>>(new Set());
-  const [loadedFileName, setLoadedFileName] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -125,9 +140,8 @@ export default function AnalyticsView() {
     }, 2000);
   };
 
-  // Procesador real de archivos de Excel (SheetJS / xlsx) exportados de Colab
+  // Procesador real de archivos de Excel (SheetJS / xlsx) exportados de Colab con guardado en localStorage
   const processExcelFile = (file: File) => {
-    setLoadedFileName(file.name);
     const reader = new FileReader();
 
     reader.onload = (e) => {
@@ -135,7 +149,6 @@ export default function AnalyticsView() {
         const data = new Uint8Array(e.target?.result as ArrayBuffer);
         const workbook = XLSX.read(data, { type: 'array' });
 
-        // Intenta leer la hoja '01_matriz_maestra_detalle' o la primera hoja
         const sheetName = workbook.Sheets['01_matriz_maestra_detalle'] ? '01_matriz_maestra_detalle' : workbook.SheetNames[0];
         const rawMatrix: any[] = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
 
@@ -149,21 +162,29 @@ export default function AnalyticsView() {
               riskLevel = 'acompanamiento';
             }
 
-            const attendanceVal = row.asistencia || (100 - (row.tasa_desercion || 0) * 10);
-            const attendance = Math.min(100, Math.max(50, Math.round(attendanceVal)));
+            // Cálculo dinámico de asistencia basado en reprobación y deserción
+            const reprobRate = row.tasa_reprobacion || 0;
+            const dropRate = row.tasa_desercion || 0;
+            const calculatedAttendance = Math.max(65, Math.min(98, Math.round(100 - (reprobRate * 1.2) - (dropRate * 2))));
+
+            // Diferenciar género en el nombre
+            const genderTag = row.sexo ? ` (${row.sexo === 'hombres' ? 'Masc.' : row.sexo === 'mujeres' ? 'Fem.' : row.sexo})` : '';
+            const instName = (row.nombre_institucion_due || row.establecimiento_educativo || `I.E. Registro #${idx + 1}`) + genderTag;
+
+            const irteVal = row.irte_c4 ? parseFloat(row.irte_c4).toFixed(1) : '35.0';
 
             return {
               id: `colab-${idx}`,
-              name: row.nombre_institucion_due || row.establecimiento_educativo || row.estudiante || `Registro #${idx + 1}`,
+              name: instName,
               grade: row.grado ? `${row.grado}°` : '10°',
               school: row.establecimiento_educativo || row.nombre_institucion_due || 'I.E. Comuna 4',
-              barrio: row.barrio || 'Aranjuez',
-              attendance: attendance,
-              avgGrade: parseFloat((row.punt_global_promedio ? row.punt_global_promedio / 100 : row.promedio || 3.5).toFixed(1)),
+              barrio: row.barrio || 'ARANJUEZ',
+              attendance: calculatedAttendance,
+              avgGrade: parseFloat((row.punt_global_promedio ? (row.punt_global_promedio / 50).toFixed(1) : '3.5')),
               riskLevel: riskLevel,
               guardian: row.acudiente || 'Coordinación Pedagógica',
               guardianPhone: row.telefono || '+57 300 000 0000',
-              lastAlert: 'Cargado de Colab',
+              lastAlert: `IRTE: ${irteVal}/100`,
               riskBreakdown: {
                 academico: Math.round(row.riesgo_reprobacion || (riskLevel === 'critico' ? 80 : 35)),
                 economico: Math.round(row.riesgo_matricula || (riskLevel === 'critico' ? 75 : 30)),
@@ -173,7 +194,14 @@ export default function AnalyticsView() {
             };
           });
 
+          // Actualizar estado de React
           setStudents(parsedStudents);
+          setLoadedFileName(file.name);
+
+          // Guardar en localStorage para persistencia al navegar entre pestañas
+          localStorage.setItem('siad_students_data', JSON.stringify(parsedStudents));
+          localStorage.setItem('siad_file_name', file.name);
+
           setUploadOpen(false);
         }
       } catch (err) {
@@ -203,8 +231,8 @@ export default function AnalyticsView() {
             Monitoreo multidimensional para la identificación oportuna del riesgo de deserción escolar (IRTE C4) en los grados 9.º, 10.º y 11.º.
           </p>
           {loadedFileName && (
-            <p className="mt-1 text-xs font-medium text-emerald-600">
-              ✓ Datos cargados desde: <strong>{loadedFileName}</strong>
+            <p className="mt-1 text-xs font-medium text-emerald-600 flex items-center gap-1">
+              ✓ Datos guardados desde: <strong>{loadedFileName}</strong>
             </p>
           )}
         </div>
