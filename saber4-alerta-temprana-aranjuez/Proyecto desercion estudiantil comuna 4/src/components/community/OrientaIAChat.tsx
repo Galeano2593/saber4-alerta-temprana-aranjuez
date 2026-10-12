@@ -64,7 +64,7 @@ export default function OrientaIAChat() {
         throw new Error('API_KEY_MISSING');
       }
 
-      // Preparar el historial reciente para mantener el contexto de conversación
+      // Preparar historial reciente
       const conversationHistory = messages.slice(-6).map((m) => ({
         role: m.role === 'user' ? 'user' : 'model',
         parts: [{ text: m.text }],
@@ -104,7 +104,6 @@ export default function OrientaIAChat() {
         throw new Error(data.error.message || 'API_RESPONSE_ERROR');
       }
 
-      // Extracción de texto de las partes devueltas por Gemini
       const candidateParts = data.candidates?.[0]?.content?.parts || [];
       const botText = candidateParts.map((p: { text?: string }) => p.text || '').join('\n').trim();
 
@@ -116,7 +115,6 @@ export default function OrientaIAChat() {
     } catch (error: any) {
       console.error('Error en OrientaIA:', error);
 
-      // Respuesta de respaldo para garantizar continuidad
       const fallbackResponse = getLocalFallback(text);
       setMessages((m) => [...m, { id: Date.now() + 1, role: 'bot', text: fallbackResponse }]);
     } finally {
@@ -204,4 +202,27 @@ export default function OrientaIAChat() {
               e.preventDefault();
               send(input);
             }}
-            className="flex items-center gap-2
+            className="flex items-center gap-2 p-3 bg-white border-t border-slate-100"
+          >
+            <input
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="Haz tu consulta en vivo (ej: cuando abren inscripciones en el ITM)..."
+              className="flex-1 px-4 py-2.5 rounded-xl bg-slate-100 text-sm text-slate-800 placeholder:text-slate-400 outline-none focus:ring-2 ring-primary-500"
+            />
+            <button
+              type="submit"
+              className="w-11 h-11 rounded-xl bg-gradient-to-br from-primary-600 to-primary-700 text-white flex items-center justify-center shadow-md shadow-primary-500/30 hover:scale-105 transition-transform"
+            >
+              <Send className="w-5 h-5" />
+            </button>
+          </form>
+        </div>
+
+        <p className="mt-3 text-center text-xs text-slate-400 flex items-center justify-center gap-1">
+          <MapPin className="w-3 h-3" /> OrientaIA SIAD Aranjuez — Búsqueda activada con tecnología Google Gemini.
+        </p>
+      </div>
+    </section>
+  );
+}
