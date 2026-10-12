@@ -1,103 +1,132 @@
+import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Users, Building2, ShieldCheck, TrendingUp } from 'lucide-react';
-import { METRICS } from '@/data/comuna4';
+import { Users, Building2, ShieldCheck, TrendingUp, MapPin } from 'lucide-react';
+import { STUDENTS, type StudentRecord } from '@/data/comuna4';
 
 export default function Hero() {
+  // Carga dinámica desde localStorage (los datos guardados desde AnalyticsView)
+  const [students] = useState<StudentRecord[]>(() => {
+    const saved = localStorage.getItem('siad_students_data');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error('Error leyendo localStorage en Hero:', e);
+      }
+    }
+    return STUDENTS;
+  });
+
+  // Métricas calculadas en tiempo real a partir del Excel de Colab
+  const metrics = useMemo(() => {
+    const totalStudents = students.length;
+
+    // Conteo de Instituciones Educativas únicas
+    const schoolsSet = new Set<string>();
+    students.forEach((s) => {
+      if (s.school) schoolsSet.add(s.school.trim());
+    });
+    const totalSchools = schoolsSet.size || 14;
+
+    // Porcentaje de atención / estabilidad preventiva
+    const establesCount = students.filter(
+      (s) => s.riskLevel === 'estable' || s.riskLevel === 'acompanamiento'
+    ).length;
+    const attendedPercentage = totalStudents > 0 
+      ? Math.round((establesCount / totalStudents) * 100) 
+      : 85;
+
+    return {
+      totalStudents,
+      totalSchools,
+      attendedPercentage,
+    };
+  }, [students]);
+
   return (
-    <section className="relative overflow-hidden">
-      {/* Background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-primary-900 via-primary-800 to-primary-950" />
-      <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle at 20% 30%, #10b981 0, transparent 45%), radial-gradient(circle at 80% 70%, #3b82f6 0, transparent 45%)' }} />
-      <div className="absolute inset-0" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px)', backgroundSize: '48px 48px' }} />
+    <div className="relative min-h-[calc(100vh-4rem)] bg-gradient-to-b from-blue-900 via-blue-950 to-slate-950 text-white px-4 sm:px-6 lg:px-8 py-12">
+      {/* Fondo con malla sutil */}
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff0a_1px,transparent_1px),linear-gradient(to_bottom,#ffffff0a_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none" />
 
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
-        <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7 }}
-          className="max-w-3xl"
-        >
-          <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-accent-500/20 text-accent-300 text-xs font-semibold ring-1 ring-accent-400/30 mb-5">
-            <span className="w-2 h-2 rounded-full bg-accent-400 animate-pulse" />
-            Comuna 4 · Aranjuez, Medellín
-          </span>
-          <h2 className="font-display text-3xl sm:text-5xl font-extrabold text-white leading-[1.1] tracking-tight">
-            SIAD ARANJUEZ: Tecnología e Inteligencia de Datos al Servicio de la Educación en{' '}
-            <span className="bg-gradient-to-r from-accent-400 to-accent-300 bg-clip-text text-transparent">Aranjuez</span>
-          </h2>
-          <p className="mt-5 text-base sm:text-lg text-primary-100 leading-relaxed max-w-2xl">
-            Una red de alerta temprana que previene la deserción escolar y conecta a los jóvenes de la Comuna 4 con la educación superior, las carreras técnicas y las oportunidades de empleo.
-          </p>
-        </motion.div>
+      <div className="relative max-w-7xl mx-auto">
+        {/* Badge Comuna 4 */}
+        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold mb-6">
+          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+          <MapPin className="w-3.5 h-3.5" />
+          Comuna 4 - Aranjuez, Medellín
+        </div>
 
-        {/* Metrics */}
-        <div className="mt-12 grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
-          <MetricCard
-            icon={<Users className="w-6 h-6" />}
-            value={METRICS.studentsMonitored.toLocaleString('es-CO')}
-            label="Estudiantes monitoreados"
-            delay={0.1}
-            accent="accent"
-          />
-          <MetricCard
-            icon={<Building2 className="w-6 h-6" />}
-            value={`${METRICS.institutions}`}
-            label="Instituciones Educativas de la Comuna 4"
-            delay={0.2}
-            accent="blue"
-          />
-          <MetricCard
-            icon={<ShieldCheck className="w-6 h-6" />}
-            value={`${METRICS.alertsAttended}%`}
-            label="Alertas Atendidas"
-            delay={0.3}
-            accent="accent"
-            trend={<TrendingUp className="w-4 h-4" />}
-          />
+        {/* Título Principal */}
+        <h1 className="font-display text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight max-w-4xl leading-[1.15]">
+          SIAD ARANJUEZ: <span className="text-white">Tecnología e Inteligencia de Datos</span> al Servicio de la Educación en <span className="text-emerald-400">Aranjuez</span>
+        </h1>
+
+        <p className="mt-6 text-slate-300 text-base sm:text-lg max-w-3xl leading-relaxed">
+          Una red de alerta temprana que previene la deserción escolar y conecta a los jóvenes de la Comuna 4 con la educación superior, las carreras técnicas y las oportunidades de empleo.
+        </p>
+
+        {/* Tarjetas de Métricas Sincronizadas */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12">
+          {/* Tarjeta 1: Estudiantes Monitoreados */}
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="relative overflow-hidden rounded-3xl bg-white/5 border border-white/10 p-8 backdrop-blur-md hover:bg-white/10 transition-colors"
+          >
+            <div className="w-12 h-12 rounded-2xl bg-blue-500/20 text-blue-400 flex items-center justify-center mb-6">
+              <Users className="w-6 h-6" />
+            </div>
+            <p className="font-display text-4xl sm:text-5xl font-black text-white tracking-tight">
+              {metrics.totalStudents.toLocaleString()}
+            </p>
+            <p className="text-sm font-medium text-slate-300 mt-2">
+              Estudiantes / Registros monitoreados
+            </p>
+          </motion.div>
+
+          {/* Tarjeta 2: Instituciones Educativas */}
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="relative overflow-hidden rounded-3xl bg-white/5 border border-white/10 p-8 backdrop-blur-md hover:bg-white/10 transition-colors"
+          >
+            <div className="w-12 h-12 rounded-2xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center mb-6">
+              <Building2 className="w-6 h-6" />
+            </div>
+            <p className="font-display text-4xl sm:text-5xl font-black text-white tracking-tight">
+              {metrics.totalSchools}
+            </p>
+            <p className="text-sm font-medium text-slate-300 mt-2">
+              Instituciones Educativas de la Comuna 4
+            </p>
+          </motion.div>
+
+          {/* Tarjeta 3: Alertas Atendidas */}
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="relative overflow-hidden rounded-3xl bg-white/5 border border-white/10 p-8 backdrop-blur-md hover:bg-white/10 transition-colors"
+          >
+            <div className="flex items-center justify-between mb-6">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
+                <ShieldCheck className="w-6 h-6" />
+              </div>
+              <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-full">
+                <TrendingUp className="w-3 h-3" /> +3%
+              </span>
+            </div>
+            <p className="font-display text-4xl sm:text-5xl font-black text-white tracking-tight">
+              {metrics.attendedPercentage}%
+            </p>
+            <p className="text-sm font-medium text-slate-300 mt-2">
+              Alertas Atendidas y Monitoreadas
+            </p>
+          </motion.div>
         </div>
       </div>
-
-      {/* Wave divider */}
-      <div className="relative">
-        <svg viewBox="0 0 1440 80" className="w-full h-[40px] sm:h-[60px] block" preserveAspectRatio="none">
-          <path d="M0,40 C240,80 480,0 720,30 C960,60 1200,10 1440,40 L1440,80 L0,80 Z" fill="white" />
-        </svg>
-      </div>
-    </section>
-  );
-}
-
-function MetricCard({
-  icon,
-  value,
-  label,
-  delay,
-  accent,
-  trend,
-}: {
-  icon: React.ReactNode;
-  value: string;
-  label: string;
-  delay: number;
-  accent: 'accent' | 'blue';
-  trend?: React.ReactNode;
-}) {
-  const ring = accent === 'accent' ? 'ring-accent-400/30 text-accent-300' : 'ring-primary-400/30 text-primary-300';
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6, delay }}
-      className="group relative bg-white/10 backdrop-blur-sm rounded-2xl p-5 ring-1 ring-white/15 hover:ring-white/30 transition-all"
-    >
-      <div className="flex items-start justify-between">
-        <div className={`w-12 h-12 rounded-xl bg-white/10 ring-1 ${ring} flex items-center justify-center`}>
-          {icon}
-        </div>
-        {trend && <span className="text-accent-300 flex items-center gap-1 text-xs font-semibold">{trend} +3%</span>}
-      </div>
-      <p className="mt-4 font-display text-3xl sm:text-4xl font-extrabold text-white tabular-nums">{value}</p>
-      <p className="mt-1 text-sm text-primary-100/80">{label}</p>
-    </motion.div>
+    </div>
   );
 }
