@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Users, GraduationCap, AlertTriangle, Sparkles, Phone, MapPin, Search, Building2 } from 'lucide-react';
 import { STUDENTS, SCHOOLS, type School, type StudentRecord } from '@/data/comuna4';
 
-const RISK_META_CONFIG = {
+const LOCAL_RISK_META = {
   estable: {
     label: 'Riesgo Bajo / Estable',
     color: '#10b981',
@@ -212,7 +212,7 @@ export default function InteractiveMap() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {filteredSchools.map((s) => {
-          const meta = RISK_META_CONFIG[s.riskLevel] || RISK_META_CONFIG.estable;
+          const meta = LOCAL_RISK_META[s.riskLevel] || LOCAL_RISK_META.estable;
           return (
             <motion.div
               key={s.id}
@@ -261,7 +261,7 @@ export default function InteractiveMap() {
 }
 
 function SchoolModal({ school, onClose }: { school: School; onClose: () => void }) {
-  const meta = RISK_META_CONFIG[school.riskLevel] || RISK_META_CONFIG.estable;
+  const meta = LOCAL_RISK_META[school.riskLevel] || LOCAL_RISK_META.estable;
   const fullAddress = (school as { address?: string }).address || `Barrio ${school.barrio}, Aranjuez`;
 
   return (
