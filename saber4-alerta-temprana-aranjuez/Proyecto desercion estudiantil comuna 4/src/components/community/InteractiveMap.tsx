@@ -3,7 +3,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Users, GraduationCap, AlertTriangle, Sparkles, Phone, MapPin, Search, Building2 } from 'lucide-react';
 import { STUDENTS, SCHOOLS, type School, type StudentRecord } from '@/data/comuna4';
 
-// Meta de riesgos con colores y etiquetas exactas
 const RISK_META_CONFIG = {
   estable: {
     label: 'Riesgo Bajo / Estable',
@@ -64,6 +63,21 @@ const OFFICIAL_ADDRESSES: Record<string, string> = {
 
 function cleanText(txt: string) {
   return txt.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+}
+
+export function SectionHeading({ eyebrow, title, subtitle }: { eyebrow: string; title: string; subtitle: string }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: '-80px' }}
+      transition={{ duration: 0.5 }}
+    >
+      <span className="text-xs font-bold uppercase tracking-wider text-primary-600">{eyebrow}</span>
+      <h3 className="mt-1.5 font-display text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">{title}</h3>
+      <p className="mt-2 text-slate-600 max-w-2xl">{subtitle}</p>
+    </motion.div>
+  );
 }
 
 export default function InteractiveMap() {
@@ -184,7 +198,6 @@ export default function InteractiveMap() {
           </p>
         </div>
 
-        {/* Buscador de colegios */}
         <div className="relative w-full md:w-72">
           <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
@@ -197,7 +210,6 @@ export default function InteractiveMap() {
         </div>
       </div>
 
-      {/* Grid de Tarjetas de Instituciones */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {filteredSchools.map((s) => {
           const meta = RISK_META_CONFIG[s.riskLevel] || RISK_META_CONFIG.estable;
@@ -239,7 +251,6 @@ export default function InteractiveMap() {
         })}
       </div>
 
-      {/* Modal interactivo con Detalles */}
       <AnimatePresence>
         {selected && (
           <SchoolModal school={selected} onClose={() => setSelected(null)} />
