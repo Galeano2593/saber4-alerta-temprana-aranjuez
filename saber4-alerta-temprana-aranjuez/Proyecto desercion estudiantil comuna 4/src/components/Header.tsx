@@ -36,7 +36,7 @@ export default function Header({ view, onViewChange }: HeaderProps) {
               active={view === 'comunidad'}
               onClick={() => onViewChange('comunidad')}
               icon={<LayoutGrid className="w-4 h-4" />}
-              label="Comunidad"
+              label="Vista Territorial"
             />
             <SwitchButton
               active={view === 'analitica'}
