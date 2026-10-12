@@ -1,7 +1,29 @@
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Users, GraduationCap, AlertTriangle, Sparkles, Phone, MapPin, Search, Building2 } from 'lucide-react';
-import { STUDENTS, SCHOOLS, riskMeta, type School, type StudentRecord } from '@/data/comuna4';
+import { STUDENTS, SCHOOLS, type School, type StudentRecord } from '@/data/comuna4';
+
+// Meta de riesgos independiente para evitar errores de importación en Rollup/Vercel
+const LOCAL_RISK_META = {
+  estable: {
+    label: 'Estable / Bajo',
+    color: '#10b981',
+    bg: 'bg-emerald-50',
+    text: 'text-emerald-700',
+  },
+  acompanamiento: {
+    label: 'Acompañamiento / Medio',
+    color: '#f59e0b',
+    bg: 'bg-amber-50',
+    text: 'text-amber-700',
+  },
+  critico: {
+    label: 'Riesgo Crítico',
+    color: '#ef4444',
+    bg: 'bg-red-50',
+    text: 'text-red-700',
+  },
+};
 
 const OFFICIAL_ADDRESSES: Record<string, string> = {
   'col comfama - sede aranjuez': 'CR 51 B 91 95, Aranjuez',
@@ -178,7 +200,7 @@ export default function InteractiveMap() {
       {/* Grid de Tarjetas de Instituciones */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {filteredSchools.map((s) => {
-          const meta = riskMeta[s.riskLevel];
+          const meta = LOCAL_RISK_META[s.riskLevel] || LOCAL_RISK_META.estable;
           return (
             <motion.div
               key={s.id}
@@ -228,7 +250,7 @@ export default function InteractiveMap() {
 }
 
 function SchoolModal({ school, onClose }: { school: School; onClose: () => void }) {
-  const meta = riskMeta[school.riskLevel];
+  const meta = LOCAL_RISK_META[school.riskLevel] || LOCAL_RISK_META.estable;
   const fullAddress = (school as { address?: string }).address || `Barrio ${school.barrio}, Aranjuez`;
 
   return (
