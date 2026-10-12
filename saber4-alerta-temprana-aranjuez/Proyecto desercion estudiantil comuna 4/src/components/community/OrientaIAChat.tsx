@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bot, Send, Sparkles, GraduationCap, Coins, Briefcase, MapPin } from 'lucide-react';
+import { Bot, Send, Sparkles, GraduationCap, Coins, Briefcase, MapPin, Globe } from 'lucide-react';
 import { SectionHeading } from './InteractiveMap';
 
 interface Message {
@@ -10,54 +10,18 @@ interface Message {
 }
 
 const QUICK_OPTIONS = [
-  { id: 'carreras', label: 'Carreras de Software y Tecnología en ITM', icon: <GraduationCap className="w-4 h-4" /> },
+  { id: 'carreras', label: 'Carreras de Software en ITM', icon: <GraduationCap className="w-4 h-4" /> },
   { id: 'becas', label: 'Becas Sapiencia y Matrícula Cero', icon: <Coins className="w-4 h-4" /> },
   { id: 'empleo', label: 'Empleo Joven y Agencia SENA', icon: <Briefcase className="w-4 h-4" /> },
-  { id: 'orientacion', label: '¿No sabes qué estudiar? Test Rápido', icon: <Sparkles className="w-4 h-4" /> },
+  { id: 'orientacion', label: '¿No sabes qué estudiar?', icon: <Sparkles className="w-4 h-4" /> },
 ];
-
-function cleanText(txt: string): string {
-  return txt.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
-}
-
-function resolveAIResponse(userText: string): string {
-  const norm = cleanText(userText);
-
-  // 1. Desarrollo de Software / Programación / ITM
-  if (norm.includes('soft') || norm.includes('progra') || norm.includes('siste') || norm.includes('itm') || norm.includes('code') || norm.includes('desarro')) {
-    return 'El ITM (Instituto Tecnológico Metropolitano) ofrece programas clave en tecnología como la Tecnología en Desarrollo de Software y la Tecnología en Sistemas de Información. Son carreras de 6 semestres con alta inserción laboral en Medellín. Además, el SENA ofrece la Tecnología en Análisis y Desarrollo de Software (ADSO) 100% gratuita. ¿Deseas saber las fechas del próximo proceso de admisión?';
-  }
-
-  // 2. Becas / Sapiencia / Matrícula Cero / Financiación
-  if (norm.includes('beca') || norm.includes('sapien') || norm.includes('gratu') || norm.includes('pagar') || norm.includes('epm') || norm.includes('plata') || norm.includes('dinero')) {
-    return 'Para estudiar gratis o con apoyo económico en Aranjuez y Comuna 4 cuentas con: 1) Matrícula Cero de la Alcaldía de Medellín para IES públicas (ITM, Pascual Bravo, Colegio Mayor), 2) Fondo Beca Tecnologías Sapiencia, 3) Fondos Presupuesto Participativo de la Comuna 4. Requisitos principales: vivir en estrato 1, 2 o 3 y haber egresado de un colegio oficial. ¿Te gustaría conocer el calendario de postulaciones de Sapiencia?';
-  }
-
-  // 3. Empleo / Trabajo / Experiencia / SENA / Prácticas
-  if (norm.includes('empleo') || norm.includes('traba') || norm.includes('chamba') || norm.includes('hoja') || norm.includes('camara') || norm.includes('sena')) {
-    return 'Para ingresar al mercado laboral siendo joven en la Comuna 4 dispones de: 1) Agencia Pública de Empleo del SENA con vacantes para aprendices, 2) Ruta N con programas de formación exprés en tecnología e inserción directa, 3) Centro del Valle de Software Aranjuez con asesoría para emprendimiento y primer empleo. ¿Quieres consejos para estructurar tu hoja de vida sin experiencia previa?';
-  }
-
-  // 4. Orientación / Dudas / No sé qué estudiar
-  if (norm.includes('orienta') || norm.includes('estudia') || norm.includes('nose') || norm.includes('no se') || norm.includes('gust') || norm.includes('ayuda')) {
-    return '¡Es perfectamente normal dudar! Vamos a definir tu perfil con 3 preguntas rápidas: 1) ¿Prefieres resolver problemas lógicos y tecnología, trabajar con personas en salud/comunidad, o el diseño y la creatividad? 2) ¿Prefieres una carrera corta (técnica/tecnológica de 2-3 años) o profesional? Respóndeme con tus gustos y te mostraré las 3 mejores opciones activas en Medellín.';
-  }
-
-  // 5. Inscripciones / Requisitos / Documentos
-  if (norm.includes('inscri') || norm.includes('requisi') || norm.includes('documen') || norm.includes('fech') || norm.includes('pape')) {
-    return 'Los requisitos generales para ingresar a la educación superior pública en Medellín son: 1) Fotocopia del documento de identidad, 2) Acta de grado o diploma de bachiller, 3) Pruebas Saber 11 (Icfes), 4) Cuenta de servicios públicos reciente para certificar residencia e historia socioeconómica. ¿A qué institución deseas postularte?';
-  }
-
-  // Respuesta por defecto enriquecida
-  return 'Hola, soy OrientaIA, el orientador vocacional del SIAD Aranjuez. Puedo asesorarte con detalle sobre ofertas académicas del ITM y SENA, becas de Sapiencia, empleo joven y orientación vocacional. Escribe tu pregunta sobre carreras, inscripciones o becas y te guiaré con datos reales de la Comuna 4.';
-}
 
 export default function OrientaIAChat() {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 1,
       role: 'bot',
-      text: '¡Hola! Soy OrientaIA, tu orientador vocacional en la Comuna 4. Puedo ayudarte a resolver dudas sobre carreras técnicas en el ITM, becas de Sapiencia, empleo joven en Medellín u orientación si no estás seguro de qué estudiar. ¿En qué te puedo asesorar hoy?',
+      text: '¡Hola! Soy OrientaIA, tu orientador vocacional con acceso a internet en tiempo real. Puedo buscar convocatorias actualizadas del ITM, becas de Sapiencia, ofertas del SENA y empleo joven en Medellín. ¿En qué te asesoro hoy?',
     },
   ]);
   const [input, setInput] = useState('');
@@ -70,45 +34,106 @@ export default function OrientaIAChat() {
     }
   }, [messages, typing]);
 
-  const send = (text: string) => {
+  const send = async (text: string) => {
     if (!text.trim()) return;
+
     const userMsg: Message = { id: Date.now(), role: 'user', text };
     setMessages((m) => [...m, userMsg]);
     setInput('');
     setTyping(true);
 
-    const botReply = resolveAIResponse(text);
+    try {
+      const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
 
-    setTimeout(() => {
+      if (!apiKey) {
+        throw new Error('API_KEY_MISSING');
+      }
+
+      // Prepara el historial reciente
+      const conversationHistory = messages.slice(-6).map((m) => ({
+        role: m.role === 'user' ? 'user' : 'model',
+        parts: [{ text: m.text }],
+      }));
+
+      // Llamada a la API de Gemini 2.5 Flash con Búsqueda Integrada
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            systemInstruction: {
+              parts: [
+                {
+                  text: `Eres OrientaIA, el orientador vocacional inteligente del proyecto SIAD Aranjuez (Comuna 4, Medellín). 
+                  Orientas a jóvenes sobre:
+                  1) Oferta académica del ITM, SENA, Pascual Bravo y Colegio Mayor de Medellín.
+                  2) Becas Sapiencia, Matrícula Cero, Fondos EPM y Presupuesto Participativo de Comuna 4.
+                  3) Empleo joven y rutas del Valle del Software Aranjuez o Ruta N.
+                  Responde siempre de forma clara, amable, directa y concisa (máximo 2 párrafos). Consulta internet si el usuario pregunta por fechas, requisitos o datos actualizados.`,
+                },
+              ],
+            },
+            contents: [
+              ...conversationHistory,
+              { role: 'user', parts: [{ text }] },
+            ],
+            tools: [{ googleSearch: {} }],
+          }),
+        }
+      );
+
+      const data = await response.json();
+      const botText =
+        data.candidates?.[0]?.content?.parts?.[0]?.text ||
+        'No pude obtener la información requerida en este momento. Inténtalo de nuevo.';
+
+      setMessages((m) => [...m, { id: Date.now() + 1, role: 'bot', text: botText }]);
+    } catch (error) {
+      console.error('Error en OrientaIA:', error);
+
+      let fallbackText =
+        'Ocurrió un inconveniente al consultar la red. Por favor intenta nuevamente en unos momentos.';
+      if (!import.meta.env.VITE_GEMINI_API_KEY) {
+        fallbackText =
+          'Recuerda verificar la variable VITE_GEMINI_API_KEY en Vercel para habilitar las respuestas en vivo.';
+      }
+
+      setMessages((m) => [...m, { id: Date.now() + 1, role: 'bot', text: fallbackText }]);
+    } finally {
       setTyping(false);
-      setMessages((m) => [...m, { id: Date.now() + 1, role: 'bot', text: botReply }]);
-    }, 900);
+    }
   };
 
   return (
     <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
       <SectionHeading
-        eyebrow="OrientaIA"
-        title="Tu Orientador Vocacional con IA"
-        subtitle="Un asistente inteligente que conversa con los jóvenes de la Comuna 4 sobre carreras técnicas, becas locales y rutas de empleo reales en Medellín."
+        eyebrow="OrientaIA en Vivo"
+        title="Tu Orientador Vocacional conectado a la Red"
+        subtitle="Asistente inteligente con búsqueda en tiempo real sobre inscripciones, becas de Sapiencia y oportunidades laborales en la Comuna 4."
       />
 
       <div className="mt-8 max-w-3xl mx-auto">
         <div className="bg-white rounded-2xl ring-1 ring-slate-200 shadow-xl overflow-hidden flex flex-col" style={{ height: '520px' }}>
-          {/* Header */}
+          {/* Encabezado */}
           <div className="flex items-center gap-3 px-5 py-4 bg-gradient-to-r from-primary-700 to-primary-600">
             <div className="w-10 h-10 rounded-xl bg-white/15 ring-1 ring-white/30 flex items-center justify-center">
               <Bot className="w-6 h-6 text-white" />
             </div>
             <div>
-              <p className="font-display font-bold text-white">OrientaIA</p>
+              <p className="font-display font-bold text-white flex items-center gap-2">
+                OrientaIA
+                <span className="inline-flex items-center gap-1 text-[10px] font-semibold bg-emerald-500/30 text-emerald-100 px-2 py-0.5 rounded-full border border-emerald-400/30">
+                  <Globe className="w-3 h-3 text-emerald-300" /> Web en Vivo
+                </span>
+              </p>
               <p className="text-xs text-primary-100 flex items-center gap-1">
-                <span className="w-2 h-2 rounded-full bg-accent-400 animate-pulse" /> En línea
+                <span className="w-2 h-2 rounded-full bg-accent-400 animate-pulse" /> Conectado a Gemini API
               </p>
             </div>
           </div>
 
-          {/* Mensajes */}
+          {/* Área de Mensajes */}
           <div ref={scrollRef} className="flex-1 overflow-y-auto p-5 space-y-4 bg-slate-50">
             <AnimatePresence initial={false}>
               {messages.map((m) => (
@@ -133,15 +158,8 @@ export default function OrientaIAChat() {
 
             {typing && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex justify-start">
-                <div className="bg-white ring-1 ring-slate-200 px-4 py-3 rounded-2xl rounded-bl-none flex gap-1.5">
-                  {[0, 1, 2].map((i) => (
-                    <motion.span
-                      key={i}
-                      className="w-2 h-2 rounded-full bg-slate-300"
-                      animate={{ y: [0, -4, 0] }}
-                      transition={{ duration: 0.6, repeat: Infinity, delay: i * 0.15 }}
-                    />
-                  ))}
+                <div className="bg-white ring-1 ring-slate-200 px-4 py-3 rounded-2xl rounded-bl-none flex items-center gap-2 text-xs text-slate-500 font-medium">
+                  <Globe className="w-3.5 h-3.5 text-primary-600 animate-spin" /> Buscando en la red e interpretando...
                 </div>
               </motion.div>
             )}
@@ -161,7 +179,7 @@ export default function OrientaIAChat() {
             ))}
           </div>
 
-          {/* Caja de entrada */}
+          {/* Caja de texto */}
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -172,7 +190,7 @@ export default function OrientaIAChat() {
             <input
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Escribe tu duda (ej: becas, desarrollo de software, SENA)..."
+              placeholder="Haz tu consulta en vivo (ej: cuando abren inscripciones en el ITM)..."
               className="flex-1 px-4 py-2.5 rounded-xl bg-slate-100 text-sm text-slate-800 placeholder:text-slate-400 outline-none focus:ring-2 ring-primary-500"
             />
             <button
@@ -185,7 +203,7 @@ export default function OrientaIAChat() {
         </div>
 
         <p className="mt-3 text-center text-xs text-slate-400 flex items-center justify-center gap-1">
-          <MapPin className="w-3 h-3" /> OrientaIA - Asistente de Orientación Vocacional SIAD Comuna 4 Aranjuez.
+          <MapPin className="w-3 h-3" /> OrientaIA SIAD Aranjuez — Búsqueda activada con tecnología Google Gemini.
         </p>
       </div>
     </section>
