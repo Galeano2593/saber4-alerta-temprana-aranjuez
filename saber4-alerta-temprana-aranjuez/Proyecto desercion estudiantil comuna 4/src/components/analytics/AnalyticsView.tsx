@@ -72,7 +72,7 @@ export default function AnalyticsView() {
         const normSchool = normalizeText(s.school || '');
         if (!normName.includes(normSearch) && !normSchool.includes(normSearch)) return false;
       }
-      
+
       if (riskFilter !== 'todos') {
         if (riskFilter === 'bajo' && s.riskLevel !== 'estable') return false;
         if (riskFilter === 'medio' && s.riskLevel !== 'acompanamiento') return false;
@@ -138,7 +138,7 @@ export default function AnalyticsView() {
     });
   }, [filtered]);
 
-  // 🏙️ GRÁFICO 3: Distribución por barrio calculada en tiempo real a partir de los datos subidos
+  // 🏙️ GRÁFICO 3: Distribución por barrio calculada en tiempo real
   const dynamicRiskByBarrio = useMemo(() => {
     const barrioMap: Record<string, { estable: number; acompanamiento: number; critico: number }> = {};
 
@@ -216,6 +216,7 @@ export default function AnalyticsView() {
     }, 2000);
   };
 
+  // Procesamiento flexible de archivos Excel (.xlsx/.xls) y CSV (.csv)
   const processExcelFile = (file: File) => {
     const reader = new FileReader();
 
@@ -229,8 +230,13 @@ export default function AnalyticsView() {
 
         if (rawMatrix.length > 0) {
           const parsedStudents: StudentRecord[] = rawMatrix.map((row, idx) => {
-            const rawRisk = (row.nivel_riesgo || row.riesgo || '').toString().trim().toLowerCase();
-            
+            // Nombre del estudiante o institución
+            const nameVal = row.Estudiante || row.estudiante || row.nombre_institucion_due || row.establecimiento_educativo || `Estudiante #${idx + 1}`;
+            const genderTag = row.sexo ? ` (${row.sexo === 'hombres' ? 'Masc.' : row.sexo === 'mujeres' ? 'Fem.' : row.sexo})` : '';
+            const fullName = `${nameVal}${genderTag}`;
+
+            // Nivel de riesgo
+            const rawRisk = (row['Nivel de Riesgo'] || row.nivel_riesgo || row.riesgo || '').toString().trim().toLowerCase();
             let riskLevel: RiskLevel = 'estable';
             if (rawRisk.includes('critico') || rawRisk.includes('crítico') || rawRisk.includes('alto')) {
               riskLevel = 'critico';
@@ -240,28 +246,41 @@ export default function AnalyticsView() {
               riskLevel = 'estable';
             }
 
-            const reprobRate = row.tasa_reprobacion || 0;
-            const dropRate = row.tasa_desercion || 0;
-            const calculatedAttendance = Math.max(65, Math.min(98, Math.round(100 - (reprobRate * 1.2) - (dropRate * 2))));
+            // Asistencia
+            const rawAttendance = row['Asistencia (%)'] || row.asistencia;
+            let calculatedAttendance = 90;
+            if (rawAttendance !== undefined) {
+              calculatedAttendance = parseFloat(rawAttendance.toString().replace('%', '').trim()) || 90;
+            } else {
+              const reprobRate = row.tasa_reprobacion || 0;
+              const dropRate = row.tasa_desercion || 0;
+              calculatedAttendance = Math.max(65, Math.min(98, Math.round(100 - (reprobRate * 1.2) - (dropRate * 2))));
+            }
 
-            const genderTag = row.sexo ? ` (${row.sexo === 'hombres' ? 'Masc.' : row.sexo === 'mujeres' ? 'Fem.' : row.sexo})` : '';
-            const instName = (row.nombre_institucion_due || row.establecimiento_educativo || `I.E. Registro #${idx + 1}`) + genderTag;
+            // Promedio
+            const rawProm = row.Promedio || row.promedio || row.punt_global_promedio;
+            let avgGradeVal = 3.5;
+            if (rawProm !== undefined) {
+              const parsedP = parseFloat(rawProm.toString().replace(',', '.'));
+              avgGradeVal = parsedP > 5 ? parseFloat((parsedP / 50).toFixed(1)) : parsedP;
+            }
 
-            const irteVal = row.irte_c4 ? parseFloat(row.irte_c4).toFixed(1) : '35.0';
-            const rawBarrio = row.barrio ? row.barrio.toString().trim().toUpperCase() : 'ARANJUEZ';
+            const rawBarrio = (row.Barrio || row.barrio || 'ARANJUEZ').toString().trim().toUpperCase();
+            const schoolVal = row.Colegio || row.colegio || row.establecimiento_educativo || 'I.E. Comuna 4';
+            const gradeVal = row.Grado || row.grado ? `${(row.Grado || row.grado).toString().replace('°', '')}°` : '10°';
 
             return {
-              id: `colab-${idx}`,
-              name: instName,
-              grade: row.grado ? `${row.grado}°` : '10°',
-              school: row.establecimiento_educativo || row.nombre_institucion_due || 'I.E. Comuna 4',
+              id: row.ID || row.id || `colab-${idx}`,
+              name: fullName,
+              grade: gradeVal,
+              school: schoolVal,
               barrio: rawBarrio,
               attendance: calculatedAttendance,
-              avgGrade: parseFloat((row.punt_global_promedio ? (row.punt_global_promedio / 50).toFixed(1) : '3.5')),
+              avgGrade: avgGradeVal,
               riskLevel: riskLevel,
-              guardian: row.acudiente || 'Coordinación Pedagógica',
-              guardianPhone: row.telefono || '+57 300 000 0000',
-              lastAlert: `IRTE: ${irteVal}/100`,
+              guardian: row.Acudiente || row.acudiente || 'Coordinación Pedagógica',
+              guardianPhone: row['Teléfono Acudiente'] || row.telefono_acudiente || row.telefono || '+57 300 000 0000',
+              lastAlert: `IRTE: ${row.irte_c4 ? parseFloat(row.irte_c4).toFixed(1) : '35.0'}/100`,
               riskBreakdown: {
                 academico: Math.round(row.riesgo_reprobacion || (riskLevel === 'critico' ? 80 : 35)),
                 economico: Math.round(row.riesgo_matricula || (riskLevel === 'critico' ? 75 : 30)),
@@ -280,8 +299,8 @@ export default function AnalyticsView() {
           setUploadOpen(false);
         }
       } catch (err) {
-        console.error('Error procesando Excel:', err);
-        alert('Error al leer el archivo. Asegúrate de cargar SIADAranjuez_resultados_detallados.xlsx');
+        console.error('Error procesando el archivo:', err);
+        alert('Error al leer el archivo. Asegúrate de cargar un archivo CSV o Excel válido.');
       }
     };
 
@@ -307,7 +326,7 @@ export default function AnalyticsView() {
           </p>
           {loadedFileName && (
             <p className="mt-1 text-xs font-medium text-emerald-600 flex items-center gap-1">
-              ✓ Datos guardados desde: <strong>{loadedFileName}</strong>
+              ✓ Datos cargados desde: <strong>{loadedFileName}</strong>
             </p>
           )}
         </div>
@@ -319,9 +338,9 @@ export default function AnalyticsView() {
       {/* Tarjetas KPI */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <KpiCard icon={<Users className="w-5 h-5" />} label="Registros Monitoreados" value={`${students.length}`} accent="primary" />
-        <KpiCard icon={<CheckCircle2 className="w-5 h-5" />} label="Riesgo Bajo" value={`${counts.bajo}`} accent="success" />
-        <KpiCard icon={<AlertTriangle className="w-5 h-5" />} label="Riesgo Medio" value={`${counts.medio}`} accent="warning" />
-        <KpiCard icon={<TrendingUp className="w-5 h-5" />} label="Riesgo Alto / Crítico" value={`${counts.critico}`} accent="error" />
+        <KpiCard icon={<CheckCircle2 className="w-5 h-5" />} label="Riesgo Bajo / Estable" value={`${counts.bajo}`} accent="success" />
+        <KpiCard icon={<AlertTriangle className="w-5 h-5" />} label="Acompañamiento" value={`${counts.medio}`} accent="warning" />
+        <KpiCard icon={<TrendingUp className="w-5 h-5" />} label="Riesgo Crítico" value={`${counts.critico}`} accent="error" />
       </div>
 
       {/* Gráficas Recharts Sincronizadas */}
@@ -432,7 +451,7 @@ export default function AnalyticsView() {
               className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-primary-600 to-primary-700 text-white text-sm font-semibold shadow-md shadow-primary-500/30 hover:scale-[1.02] transition-transform"
             >
               <UploadCloud className="w-4 h-4" />
-              Cargar Excel Colab
+              Cargar Excel / CSV
             </button>
           </div>
         </div>
@@ -444,7 +463,7 @@ export default function AnalyticsView() {
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-slate-50 text-left text-xs uppercase tracking-wider text-slate-500">
-                <th className="px-4 py-3 font-semibold">Institución / Registro</th>
+                <th className="px-4 py-3 font-semibold">Estudiante / Registro</th>
                 <th className="px-4 py-3 font-semibold">Grado</th>
                 <th className="px-4 py-3 font-semibold">Colegio</th>
                 <th className="px-4 py-3 font-semibold">Barrio</th>
@@ -619,7 +638,7 @@ function UploadModal({
         className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-6"
       >
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-display text-lg font-extrabold text-slate-900">Cargar Excel de Google Colab</h3>
+          <h3 className="font-display text-lg font-extrabold text-slate-900">Cargar Archivo de Estudiantes</h3>
           <button onClick={onClose} className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600">
             <X className="w-4 h-4" />
           </button>
@@ -629,7 +648,7 @@ function UploadModal({
           type="file"
           ref={fileInputRef}
           onChange={handleFileChange}
-          accept=".xlsx, .xls"
+          accept=".xlsx, .xls, .csv"
           className="hidden"
         />
 
@@ -645,8 +664,8 @@ function UploadModal({
           <div className="w-14 h-14 rounded-2xl bg-primary-100 text-primary-600 flex items-center justify-center mx-auto mb-3">
             <FileSpreadsheet className="w-7 h-7" />
           </div>
-          <p className="text-sm font-semibold text-slate-700">Haz clic o arrastra tu archivo Excel</p>
-          <p className="text-xs text-slate-400 mt-1">SIADAranjuez_resultados_detallados.xlsx</p>
+          <p className="text-sm font-semibold text-slate-700">Haz clic o arrastra tu archivo Excel o CSV</p>
+          <p className="text-xs text-slate-400 mt-1">Soporta .xlsx, .xls y .csv</p>
         </div>
       </motion.div>
     </motion.div>
