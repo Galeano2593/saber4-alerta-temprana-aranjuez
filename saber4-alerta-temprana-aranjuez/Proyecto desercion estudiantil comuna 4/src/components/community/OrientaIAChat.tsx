@@ -16,6 +16,21 @@ const QUICK_OPTIONS = [
   { id: 'orientacion', label: '¿No sabes qué estudiar?', icon: <Sparkles className="w-4 h-4" /> },
 ];
 
+function getLocalFallback(userText: string): string {
+  const norm = userText.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+
+  if (norm.includes('soft') || norm.includes('progra') || norm.includes('itm') || norm.includes('desarro') || norm.includes('carrera')) {
+    return 'El ITM ofrece programas tecnológicos destacados como Desarrollo de Software y Sistemas de Información (6 semestres). El SENA también ofrece la tecnología ADSO 100% gratuita. ¿Quieres información sobre requisitos de ingreso?';
+  }
+  if (norm.includes('beca') || norm.includes('sapien') || norm.includes('gratu') || norm.includes('pago') || norm.includes('matri')) {
+    return 'En la Comuna 4 puedes postularte a Matrícula Cero para IES públicas (ITM, Pascual Bravo, Colegio Mayor) y becas Sapiencia. Los requisitos principales son vivir en estrato 1, 2 o 3 y ser bachiller de un colegio de Medellín.';
+  }
+  if (norm.includes('empleo') || norm.includes('traba') || norm.includes('sena') || norm.includes('hoja')) {
+    return 'Para oportunidades laborales jóvenes puedes consultar la Agencia Pública de Empleo SENA, las convocatorias de talento TI en Ruta N y las asesorías del Valle del Software en Aranjuez.';
+  }
+  return 'Soy OrientaIA. Puedo orientarte sobre carreras del ITM, convocatorias SENA, becas de Sapiencia y opciones de empleo para jóvenes en Medellín.';
+}
+
 export default function OrientaIAChat() {
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -49,13 +64,12 @@ export default function OrientaIAChat() {
         throw new Error('API_KEY_MISSING');
       }
 
-      // Prepara el historial reciente
+      // Preparar el historial reciente para mantener el contexto de conversación
       const conversationHistory = messages.slice(-6).map((m) => ({
         role: m.role === 'user' ? 'user' : 'model',
         parts: [{ text: m.text }],
       }));
 
-      // Llamada a la API de Gemini 2.5 Flash con Búsqueda Integrada
       const response = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
         {
@@ -65,7 +79,7 @@ export default function OrientaIAChat() {
             systemInstruction: {
               parts: [
                 {
-                  text: `Eres OrientaIA, el orientador vocacional inteligente del proyecto SIAD Aranjuez (Comuna 4, Medellín). 
+                  text: `Eres OrientaIA, el orientador vocacional del proyecto SIAD Aranjuez (Comuna 4, Medellín).
                   Orientas a jóvenes sobre:
                   1) Oferta académica del ITM, SENA, Pascual Bravo y Colegio Mayor de Medellín.
                   2) Becas Sapiencia, Matrícula Cero, Fondos EPM y Presupuesto Participativo de Comuna 4.
@@ -84,22 +98,27 @@ export default function OrientaIAChat() {
       );
 
       const data = await response.json();
-      const botText =
-        data.candidates?.[0]?.content?.parts?.[0]?.text ||
-        'No pude obtener la información requerida en este momento. Inténtalo de nuevo.';
 
-      setMessages((m) => [...m, { id: Date.now() + 1, role: 'bot', text: botText }]);
-    } catch (error) {
-      console.error('Error en OrientaIA:', error);
-
-      let fallbackText =
-        'Ocurrió un inconveniente al consultar la red. Por favor intenta nuevamente en unos momentos.';
-      if (!import.meta.env.VITE_GEMINI_API_KEY) {
-        fallbackText =
-          'Recuerda verificar la variable VITE_GEMINI_API_KEY en Vercel para habilitar las respuestas en vivo.';
+      if (data.error) {
+        console.error('Gemini API Error:', data.error);
+        throw new Error(data.error.message || 'API_RESPONSE_ERROR');
       }
 
-      setMessages((m) => [...m, { id: Date.now() + 1, role: 'bot', text: fallbackText }]);
+      // Extracción de texto de las partes devueltas por Gemini
+      const candidateParts = data.candidates?.[0]?.content?.parts || [];
+      const botText = candidateParts.map((p: { text?: string }) => p.text || '').join('\n').trim();
+
+      if (!botText) {
+        throw new Error('EMPTY_RESPONSE');
+      }
+
+      setMessages((m) => [...m, { id: Date.now() + 1, role: 'bot', text: botText }]);
+    } catch (error: any) {
+      console.error('Error en OrientaIA:', error);
+
+      // Respuesta de respaldo para garantizar continuidad
+      const fallbackResponse = getLocalFallback(text);
+      setMessages((m) => [...m, { id: Date.now() + 1, role: 'bot', text: fallbackResponse }]);
     } finally {
       setTyping(false);
     }
@@ -185,27 +204,4 @@ export default function OrientaIAChat() {
               e.preventDefault();
               send(input);
             }}
-            className="flex items-center gap-2 p-3 bg-white border-t border-slate-100"
-          >
-            <input
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder="Haz tu consulta en vivo (ej: cuando abren inscripciones en el ITM)..."
-              className="flex-1 px-4 py-2.5 rounded-xl bg-slate-100 text-sm text-slate-800 placeholder:text-slate-400 outline-none focus:ring-2 ring-primary-500"
-            />
-            <button
-              type="submit"
-              className="w-11 h-11 rounded-xl bg-gradient-to-br from-primary-600 to-primary-700 text-white flex items-center justify-center shadow-md shadow-primary-500/30 hover:scale-105 transition-transform"
-            >
-              <Send className="w-5 h-5" />
-            </button>
-          </form>
-        </div>
-
-        <p className="mt-3 text-center text-xs text-slate-400 flex items-center justify-center gap-1">
-          <MapPin className="w-3 h-3" /> OrientaIA SIAD Aranjuez — Búsqueda activada con tecnología Google Gemini.
-        </p>
-      </div>
-    </section>
-  );
-}
+            className="flex items-center gap-2
