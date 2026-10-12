@@ -11,7 +11,7 @@ import {
   LineChart, Line, Legend,
 } from 'recharts';
 import {
-  STUDENTS, BARRIOS_COMUNA4, riskMeta, MONTHLY_TREND, RISK_BY_BARRIO,
+  STUDENTS, riskMeta, MONTHLY_TREND, RISK_BY_BARRIO,
   type StudentRecord, type RiskLevel,
 } from '@/data/comuna4';
 
@@ -43,12 +43,38 @@ export default function AnalyticsView() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Filtrado multitermino soportando los 4 niveles de riesgo (bajo, medio, alto, critico)
+  // Extrae de forma totalmente DINÁMICA todos los barrios únicos del Excel cargado
+  const dynamicBarrios = useMemo(() => {
+    const barriosSet = new Set<string>();
+    students.forEach((s) => {
+      if (s.barrio) {
+        barriosSet.add(s.barrio.trim().toUpperCase());
+      }
+    });
+    return Array.from(barriosSet).sort();
+  }, [students]);
+
+  // Normalizador de texto insensible a tildes y mayúsculas
+  const normalizeText = (text: string) => {
+    return text.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  };
+
+  // Filtrado multitermino con soporte dinámico de barrios y niveles de riesgo
   const filtered = useMemo(() => {
     return students.filter((s) => {
-      if (barrioFilter !== 'todos' && s.barrio !== barrioFilter) return false;
+      // Filtro de barrio insensible a tildes/mayúsculas
+      if (barrioFilter !== 'todos') {
+        if (normalizeText(s.barrio || '') !== normalizeText(barrioFilter)) return false;
+      }
+
       if (gradeFilter !== 'todos' && s.grade !== gradeFilter) return false;
-      if (search && !s.name.toLowerCase().includes(search.toLowerCase()) && !s.school.toLowerCase().includes(search.toLowerCase())) return false;
+
+      if (search) {
+        const normSearch = normalizeText(search);
+        const normName = normalizeText(s.name || '');
+        const normSchool = normalizeText(s.school || '');
+        if (!normName.includes(normSearch) && !normSchool.includes(normSearch)) return false;
+      }
       
       if (riskFilter !== 'todos') {
         if (riskFilter === 'bajo' && s.riskLevel !== 'estable') return false;
@@ -151,7 +177,7 @@ export default function AnalyticsView() {
     }, 2000);
   };
 
-  // Procesamiento con soporte de 4 niveles de riesgo (Bajo, Medio, Alto, Crítico)
+  // Procesamiento con extracción dinámica de barrio desde el Excel
   const processExcelFile = (file: File) => {
     const reader = new FileReader();
 
@@ -185,12 +211,15 @@ export default function AnalyticsView() {
 
             const irteVal = row.irte_c4 ? parseFloat(row.irte_c4).toFixed(1) : '35.0';
 
+            // Captura el barrio exacto del archivo o asigna 'ARANJUEZ' por defecto
+            const rawBarrio = row.barrio ? row.barrio.toString().trim().toUpperCase() : 'ARANJUEZ';
+
             return {
               id: `colab-${idx}`,
               name: instName,
               grade: row.grado ? `${row.grado}°` : '10°',
               school: row.establecimiento_educativo || row.nombre_institucion_due || 'I.E. Comuna 4',
-              barrio: row.barrio || 'ARANJUEZ',
+              barrio: rawBarrio,
               attendance: calculatedAttendance,
               avgGrade: parseFloat((row.punt_global_promedio ? (row.punt_global_promedio / 50).toFixed(1) : '3.5')),
               riskLevel: riskLevel,
@@ -303,7 +332,7 @@ export default function AnalyticsView() {
         </ChartCard>
       </div>
 
-      {/* Barra de Filtros con opción de 4 niveles */}
+      {/* Barra de Filtros */}
       <div className="bg-white rounded-2xl ring-1 ring-slate-200 shadow-sm p-5 mb-6">
         <div className="flex flex-col lg:flex-row lg:items-center gap-4 justify-between">
           <div className="flex flex-wrap items-center gap-3">
@@ -329,11 +358,15 @@ export default function AnalyticsView() {
               ]}
             />
 
+            {/* Desplegable alimentado dinámicamente de los barrios del Excel */}
             <FilterSelect
               icon={<Filter className="w-4 h-4" />}
               value={barrioFilter}
               onChange={setBarrioFilter}
-              options={[{ value: 'todos', label: 'Todos los barrios' }, ...BARRIOS_COMUNA4.map((b) => ({ value: b, label: b }))]}
+              options={[
+                { value: 'todos', label: 'Todos los barrios' },
+                ...dynamicBarrios.map((b) => ({ value: b, label: b }))
+              ]}
             />
 
             <FilterSelect
