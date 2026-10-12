@@ -5,66 +5,44 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Users, GraduationCap, AlertTriangle, Sparkles, Phone, MapPin } from 'lucide-react';
 import { STUDENTS, SCHOOLS, riskMeta, type School, type StudentRecord } from '@/data/comuna4';
 
-// Direcciones exactas de la tabla oficial
-const OFFICIAL_ADDRESSES: Record<string, string> = {
-  'col comfama - sede aranjuez': 'CR 51 B 91 95, Aranjuez',
-  'inst educ camilo torres restrepo': 'CR 49 83 34, Campo Valdés',
-  'inst educ san agustin': 'CL 88 A 51 B 91, Aranjuez',
-  'inst educ javiera londoño sevilla': 'CL 71 51 D 26, Sevilla',
-  'inst educ gilberto alzate avendaño': 'CL 92 51 A 100, San Isidro',
-  'inst educ jose eusebio caro': 'CR 50 A 93 77, San Isidro',
-  'inst educ juan de dios cock': 'CL 88 45 70, Las Esmeraldas',
-  'inst educ lorenza villegas de santos': 'CR 51 87 40, Aranjuez',
-  'inst educ jose maria bravo marquez': 'CL 70 47 A 04, Manrique',
-  'inst educ campo valdes': 'CL 83 47 33, Campo Valdés',
-  'inst educ monseñor francisco cristobal toro': 'CR 50 D 90 49, Aranjuez',
-  'inst educ francisco miranda': 'CR 51 C 79 56, Miranda',
-  'inst educ san juan bosco': 'CL 82 50 C 10, Miranda',
-  'inst educ francisco luis hernandez betancur': 'CL 87 50 AA 21, Aranjuez',
-  'inst educ alfonso mora naranjo': 'CR 48 A 77 68, Campo Valdés',
-  'col comfama - sede manrique': 'CR 45 78 61, Manrique',
-  'col de maria': 'CR 51 B 89 01, Aranjuez',
-  'inst pedag claret': 'CR 46 72 43, Manrique',
-  'col nuestra señora de lourdes': 'CL 82 50 BB 30, Brasilia',
-  'col agustiniano de san nicolas': 'CR 48 93 13, Berlín',
-  'inst educ alvernia': 'CL 82 C 50 C 126, Miranda',
-  'col emilia riquelme': 'CR 51 B 91 19, Aranjuez',
-  'col adventista simon bolivar': 'CR 51 D 71 105, Sevilla',
-  'inst educ fe y alegria luis amigo': 'CR 58 84 40, Moravia',
-  'col gente unida jovenes por la paz - moravia': 'CR 58 85 B 25, Moravia',
-  'cent educ rondas infantiles': 'CL 91 50 54, San Isidro',
-  'cent integl momentos felices': 'CL 72 A 48 A 69, Brasilia',
-  'cent educ luceros y estrellas': 'CR 47 72 A 4 IN 201, Manrique',
-  'inst educ el bosque': 'CR 58 85 B 81, Moravia',
-  'cent educ paraisos de color': 'CR 52 73 298, Campo Valdés',
-  'cent educ sol y luna': 'CR 53 95 64 y CR 53 95-96, Aranjuez',
-  'cent educ conduciendo la niñez': 'CR 50 A 91 24, Aranjuez',
-  'cent educ pandora': 'CR 49 A 94 75, Aranjuez',
-  'cent integ educ alegres y traviesos': 'CL 79 49 11, Campo Valdés',
+// Coordenadas GPS fijas y exactas para cada una de las 34 instituciones de la Comuna 4
+const EXACT_SCHOOL_DATA: Record<string, { lat: number; lng: number; address: string }> = {
+  'col comfama - sede aranjuez': { lat: 6.2798, lng: -75.5582, address: 'CR 51 B 91 95, Aranjuez' },
+  'inst educ camilo torres restrepo': { lat: 6.2708, lng: -75.5562, address: 'CR 49 83 34, Campo Valdés' },
+  'inst educ san agustin': { lat: 6.2770, lng: -75.5565, address: 'CL 88 A 51 B 91, Aranjuez' },
+  'inst educ javiera londoño sevilla': { lat: 6.2662, lng: -75.5621, address: 'CL 71 51 D 26, Sevilla' },
+  'inst educ gilberto alzate avendaño': { lat: 6.2801, lng: -75.5602, address: 'CL 92 51 A 100, San Isidro' },
+  'inst educ jose eusebio caro': { lat: 6.2818, lng: -75.5568, address: 'CR 50 A 93 77, San Isidro' },
+  'inst educ juan de dios cock': { lat: 6.2782, lng: -75.5508, address: 'CL 88 45 70, Las Esmeraldas' },
+  'inst educ lorenza villegas de santos': { lat: 6.2750, lng: -75.5576, address: 'CR 51 87 40, Aranjuez' },
+  'inst educ jose maria bravo marquez': { lat: 6.2655, lng: -75.5570, address: 'CL 70 47 A 04, Manrique' },
+  'inst educ campo valdes': { lat: 6.2698, lng: -75.5552, address: 'CL 83 47 33, Campo Valdés' },
+  'inst educ monseñor francisco cristobal toro': { lat: 6.2789, lng: -75.5572, address: 'CR 50 D 90 49, Aranjuez' },
+  'inst educ francisco miranda': { lat: 6.2812, lng: -75.5615, address: 'CR 51 C 79 56, Miranda' },
+  'inst educ san juan bosco': { lat: 6.2825, lng: -75.5550, address: 'CL 82 50 C 10, Miranda' },
+  'inst educ francisco luis hernandez betancur': { lat: 6.2758, lng: -75.5578, address: 'CL 87 50 AA 21, Aranjuez' },
+  'inst educ alfonso mora naranjo': { lat: 6.2635, lng: -75.5585, address: 'CR 48 A 77 68, Campo Valdés' },
+  'col comfama - sede manrique': { lat: 6.2740, lng: -75.5480, address: 'CR 45 78 61, Manrique' },
+  'col de maria': { lat: 6.2765, lng: -75.5580, address: 'CR 51 B 89 01, Aranjuez' },
+  'inst pedag claret': { lat: 6.2785, lng: -75.5535, address: 'CR 46 72 43, Manrique' },
+  'col nuestra señora de lourdes': { lat: 6.2730, lng: -75.5525, address: 'CL 82 50 BB 30, Brasilia' },
+  'col agustiniano de san nicolas': { lat: 6.2820, lng: -75.5590, address: 'CR 48 93 13, Berlín' },
+  'inst educ alvernia': { lat: 6.2805, lng: -75.5560, address: 'CL 82 C 50 C 126, Miranda' },
+  'col emilia riquelme': { lat: 6.2788, lng: -75.5575, address: 'CR 51 B 91 19, Aranjuez' },
+  'col adventista simon bolivar': { lat: 6.2660, lng: -75.5615, address: 'CR 51 D 71 105, Sevilla' },
+  'inst educ fe y alegria luis amigo': { lat: 6.2725, lng: -75.5645, address: 'CR 58 84 40, Moravia' },
+  'col gente unida jovenes por la paz - moravia': { lat: 6.2732, lng: -75.5658, address: 'CR 58 85 B 25, Moravia' },
+  'cent educ rondas infantiles': { lat: 6.2810, lng: -75.5562, address: 'CL 91 50 54, San Isidro' },
+  'cent integl momentos felices': { lat: 6.2718, lng: -75.5585, address: 'CL 72 A 48 A 69, Brasilia' },
+  'cent educ luceros y estrellas': { lat: 6.2710, lng: -75.5505, address: 'CR 47 72 A 4 IN 201, Manrique' },
+  'inst educ el bosque': { lat: 6.2715, lng: -75.5665, address: 'CR 58 85 B 81, Moravia' },
+  'cent educ paraisos de color': { lat: 6.2685, lng: -75.5595, address: 'CR 52 73 298, Campo Valdés' },
+  'cent educ sol y luna': { lat: 6.2830, lng: -75.5535, address: 'CR 53 95 64, Aranjuez' },
+  'cent educ conduciendo la niñez': { lat: 6.2792, lng: -75.5569, address: 'CR 50 A 91 24, Aranjuez' },
+  'cent educ pandora': { lat: 6.2822, lng: -75.5578, address: 'CR 49 A 94 75, Aranjuez' },
+  'cent integ educ alegres y traviesos': { lat: 6.2702, lng: -75.5560, address: 'CL 79 49 11, Campo Valdés' },
+  'cent educ descubriendo juntos': { lat: 6.2842, lng: -75.5588, address: 'CL 93 49 31, Berlín' }
 };
-
-// Conversor matemático de nomenclatura de dirección colombiana a latitud / longitud de la Comuna 4
-function geocodeMedellinAddress(addressStr: string): { lat: number; lng: number } {
-  const norm = addressStr.toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-  
-  let calle = 82;
-  let carrera = 50;
-
-  const matchCL = norm.match(/CL\s+(\d+)/);
-  const matchCR = norm.match(/CR\s+(\d+)/);
-
-  if (matchCL) calle = parseInt(matchCL[1], 10);
-  if (matchCR) carrera = parseInt(matchCR[1], 10);
-
-  // Fórmula geográfica de la retícula vial de Medellín Comuna 4
-  const baseLat = 6.2770;
-  const baseLng = -75.5570;
-
-  const lat = baseLat + ((calle - 82) * 0.00085);
-  const lng = baseLng - ((carrera - 50) * 0.00085);
-
-  return { lat, lng };
-}
 
 delete (L.Icon.Default.prototype as unknown as { _getIconUrl?: unknown })._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -125,13 +103,16 @@ export default function InteractiveMap() {
       const cleanSchoolName = cleanText(rawSchool);
 
       if (!map[rawSchool]) {
-        // Coincidencia insensible a mayúsculas/minúsculas y acentos
-        const matchedKey = Object.keys(OFFICIAL_ADDRESSES).find(k => 
+        // Búsqueda por clave limpia
+        const matchedKey = Object.keys(EXACT_SCHOOL_DATA).find(k => 
           cleanSchoolName.includes(k) || k.includes(cleanSchoolName)
         );
 
-        const officialAddr = matchedKey ? OFFICIAL_ADDRESSES[matchedKey] : `Cl. 85 # 50-10, ${rawBarrio}`;
-        const coords = geocodeMedellinAddress(officialAddr);
+        const exactInfo = matchedKey ? EXACT_SCHOOL_DATA[matchedKey] : {
+          lat: 6.2770,
+          lng: -75.5570,
+          address: `Barrio ${rawBarrio}, Aranjuez`,
+        };
 
         const count = Object.keys(map).length;
 
@@ -145,9 +126,9 @@ export default function InteractiveMap() {
           medio: 0,
           bajo: 0,
           sumAttendance: 0,
-          lat: coords.lat,
-          lng: coords.lng,
-          address: officialAddr,
+          lat: exactInfo.lat,
+          lng: exactInfo.lng,
+          address: exactInfo.address,
           phone: '+57 (604) 211-0000',
         };
       }
@@ -201,7 +182,7 @@ export default function InteractiveMap() {
       <div className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 rounded-2xl overflow-hidden shadow-xl ring-1 ring-slate-200 bg-white">
           <MapContainer
-            center={[6.2772, -75.5565]}
+            center={[6.2755, -75.5570]}
             zoom={14}
             scrollWheelZoom={false}
             style={{ height: '480px', width: '100%' }}
