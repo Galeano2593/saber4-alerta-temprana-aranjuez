@@ -36,7 +36,7 @@ export default function OrientaIAChat() {
     {
       id: 1,
       role: 'bot',
-      text: '¡Hola! Soy OrientaIA, tu orientador vocacional con acceso a internet en tiempo real. Puedo buscar convocatorias actualizadas del ITM, becas de Sapiencia, ofertas del SENA y empleo joven en Medellín. ¿En qué te asesoro hoy?',
+      text: '¡Hola! Soy OrientaIA, tu orientador vocacional en tiempo real. Puedo brindarte información sobre convocatorias del ITM, becas de Sapiencia, ofertas del SENA y empleo joven en Medellín. ¿En qué te asesoro hoy?',
     },
   ]);
   const [input, setInput] = useState('');
@@ -64,35 +64,31 @@ export default function OrientaIAChat() {
         throw new Error('API_KEY_MISSING');
       }
 
-      // Preparar historial reciente
+      // Estructura de historial compatible
       const conversationHistory = messages.slice(-6).map((m) => ({
         role: m.role === 'user' ? 'user' : 'model',
         parts: [{ text: m.text }],
       }));
 
+      const systemPrompt = `Eres OrientaIA, el orientador vocacional inteligente del proyecto SIAD Aranjuez (Comuna 4, Medellín). Orientas a jóvenes sobre la oferta académica del ITM, SENA, Pascual Bravo, becas Sapiencia, Matrícula Cero y empleo joven. Responde siempre de forma amigable, clara, directa y breve (máximo 2 párrafos).`;
+
       const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            systemInstruction: {
-              parts: [
-                {
-                  text: `Eres OrientaIA, el orientador vocacional del proyecto SIAD Aranjuez (Comuna 4, Medellín).
-                  Orientas a jóvenes sobre:
-                  1) Oferta académica del ITM, SENA, Pascual Bravo y Colegio Mayor de Medellín.
-                  2) Becas Sapiencia, Matrícula Cero, Fondos EPM y Presupuesto Participativo de Comuna 4.
-                  3) Empleo joven y rutas del Valle del Software Aranjuez o Ruta N.
-                  Responde siempre de forma clara, amable, directa y concisa (máximo 2 párrafos). Consulta internet si el usuario pregunta por fechas, requisitos o datos actualizados.`,
-                },
-              ],
-            },
             contents: [
+              {
+                role: 'user',
+                parts: [{ text: `Instrucción del sistema: ${systemPrompt}` }]
+              },
               ...conversationHistory,
-              { role: 'user', parts: [{ text }] },
-            ],
-            tools: [{ googleSearch: {} }],
+              {
+                role: 'user',
+                parts: [{ text }]
+              }
+            ]
           }),
         }
       );
@@ -104,8 +100,7 @@ export default function OrientaIAChat() {
         throw new Error(data.error.message || 'API_RESPONSE_ERROR');
       }
 
-      const candidateParts = data.candidates?.[0]?.content?.parts || [];
-      const botText = candidateParts.map((p: { text?: string }) => p.text || '').join('\n').trim();
+      const botText = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
 
       if (!botText) {
         throw new Error('EMPTY_RESPONSE');
@@ -114,7 +109,6 @@ export default function OrientaIAChat() {
       setMessages((m) => [...m, { id: Date.now() + 1, role: 'bot', text: botText }]);
     } catch (error: any) {
       console.error('Error en OrientaIA:', error);
-
       const fallbackResponse = getLocalFallback(text);
       setMessages((m) => [...m, { id: Date.now() + 1, role: 'bot', text: fallbackResponse }]);
     } finally {
@@ -126,8 +120,8 @@ export default function OrientaIAChat() {
     <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
       <SectionHeading
         eyebrow="OrientaIA en Vivo"
-        title="Tu Orientador Vocacional conectado a la Red"
-        subtitle="Asistente inteligente con búsqueda en tiempo real sobre inscripciones, becas de Sapiencia y oportunidades laborales en la Comuna 4."
+        title="Tu Orientador Vocacional Inteligente"
+        subtitle="Asistente con inteligencia artificial para orientarte sobre inscripciones, becas de Sapiencia y oportunidades laborales en la Comuna 4."
       />
 
       <div className="mt-8 max-w-3xl mx-auto">
@@ -176,7 +170,7 @@ export default function OrientaIAChat() {
             {typing && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex justify-start">
                 <div className="bg-white ring-1 ring-slate-200 px-4 py-3 rounded-2xl rounded-bl-none flex items-center gap-2 text-xs text-slate-500 font-medium">
-                  <Globe className="w-3.5 h-3.5 text-primary-600 animate-spin" /> Buscando en la red e interpretando...
+                  <Globe className="w-3.5 h-3.5 text-primary-600 animate-spin" /> Procesando respuesta con IA...
                 </div>
               </motion.div>
             )}
@@ -220,7 +214,7 @@ export default function OrientaIAChat() {
         </div>
 
         <p className="mt-3 text-center text-xs text-slate-400 flex items-center justify-center gap-1">
-          <MapPin className="w-3 h-3" /> OrientaIA SIAD Aranjuez — Búsqueda activada con tecnología Google Gemini.
+          <MapPin className="w-3 h-3" /> OrientaIA SIAD Aranjuez — Impulsado por Google Gemini API.
         </p>
       </div>
     </section>
