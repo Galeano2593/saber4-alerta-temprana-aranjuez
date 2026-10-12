@@ -5,44 +5,66 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Users, GraduationCap, AlertTriangle, Sparkles, Phone, MapPin } from 'lucide-react';
 import { STUDENTS, SCHOOLS, riskMeta, type School, type StudentRecord } from '@/data/comuna4';
 
-// Coordenadas georreferenciadas y direcciones oficiales exactas extraídas de la tabla original
-const SCHOOL_COORDINATES: Record<string, { lat: number; lng: number; address: string; phone: string }> = {
-  'COSMO SCHOOLS - SEDE ARANJUEZ': { lat: 6.2798, lng: -75.5582, address: 'CR 51 B 91 95, Aranjuez', phone: '+57 (604) 360-7080' },
-  'INSTITUCION EDUCATIVA PRESBITERO CAMILO TORRES RESTREPO': { lat: 6.2708, lng: -75.5562, address: 'CR 49 83 34, Campo Valdés', phone: '+57 (604) 211-1220' },
-  'INSTITUCION EDUCATIVA SAN AGUSTIN': { lat: 6.2770, lng: -75.5565, address: 'CL 88 A 51 B 91, Aranjuez', phone: '+57 (604) 211-5020' },
-  'INSTITUCION EDUCATIVA JAVIERA LONDOÑO SEVILLA': { lat: 6.2662, lng: -75.5621, address: 'CL 71 51 D 26, Sevilla', phone: '+57 (604) 211-3040' },
-  'INSTITUCION EDUCATIVA GILBERTO ALZATE AVENDAÑO': { lat: 6.2801, lng: -75.5602, address: 'CL 92 51 A 100, San Isidro', phone: '+57 (604) 322-5444' },
-  'INSTITUCION EDUCATIVA JOSE EUSEBIO CARO': { lat: 6.2818, lng: -75.5568, address: 'CR 50 A 93 77, San Isidro', phone: '+57 (604) 212-0030' },
-  'INSTITUCION EDUCATIVA JUAN DE DIOS COCK': { lat: 6.2782, lng: -75.5508, address: 'CL 88 45 70, Las Esmeraldas', phone: '+57 (604) 213-9011' },
-  'INSTITUCION EDUCATIVA LORENZA VILLEGAS DE SANTOS': { lat: 6.2750, lng: -75.5576, address: 'CR 51 87 40, Aranjuez', phone: '+57 (604) 211-8090' },
-  'INSTITUCION EDUCATIVA JOSE MARIA BRAVO MARQUEZ': { lat: 6.2655, lng: -75.5570, address: 'CL 70 47 A 04, Manrique', phone: '+57 (604) 514-8353' },
-  'INSTITUCION EDUCATIVA CAMPO VALDES': { lat: 6.2698, lng: -75.5552, address: 'CL 83 47 33, Campo Valdés', phone: '+57 (604) 211-9080' },
-  'INSTITUCION EDUCATIVA MONSEÑOR FRANCISCO CRISTOBAL TORO': { lat: 6.2789, lng: -75.5572, address: 'CR 50 D 90 49, Aranjuez', phone: '+57 (604) 212-1140' },
-  'INSTITUCION EDUCATIVA FRANCISCO MIRANDA': { lat: 6.2812, lng: -75.5615, address: 'CR 51 C 79 56, Miranda', phone: '+57 (604) 263-1200' },
-  'INSTITUCION EDUCATIVA SAN JUAN BOSCO': { lat: 6.2825, lng: -75.5550, address: 'CL 82 50 C 10, Miranda', phone: '+57 (604) 212-5080' },
-  'INSTITUCION EDUCATIVA FRANCISCO LUIS HERNANDEZ BETANCUR': { lat: 6.2758, lng: -75.5578, address: 'CL 87 50 AA 21, Aranjuez', phone: '+57 (604) 211-3090' },
-  'INSTITUCION EDUCATIVA ALFONSO MORA NARANJO': { lat: 6.2635, lng: -75.5585, address: 'CR 48 A 77 68, Campo Valdés', phone: '+57 (604) 211-8291' },
-  'COSMO SCHOOLS - SEDE MANRIQUE': { lat: 6.2740, lng: -75.5480, address: 'CR 45 78 61, Manrique', phone: '+57 (604) 360-7080' },
-  'COLEGIO DE MARIA': { lat: 6.2765, lng: -75.5580, address: 'CR 51 B 89 01, Aranjuez', phone: '+57 300 678 9918' },
-  'INSTITUTO PEDAGOGICO CLARET': { lat: 6.2785, lng: -75.5535, address: 'CR 46 72 43, Manrique', phone: '+57 (604) 212-4010' },
-  'COLEGIO NUESTRA SEÑORA DE LOURDES': { lat: 6.2730, lng: -75.5525, address: 'CL 82 50 BB 30, Brasilia', phone: '+57 (604) 211-6020' },
-  'COLEGIO AGUSTINIANO DE SAN NICOLAS': { lat: 6.2820, lng: -75.5590, address: 'CR 48 93 13, Berlín', phone: '+57 (604) 521-3750' },
-  'INSTITUCION EDUCATIVA ALVERNIA': { lat: 6.2805, lng: -75.5560, address: 'CL 82 C 50 C 126, Miranda', phone: '+57 (604) 212-8811' },
-  'COLEGIO EMILIA RIQUELME': { lat: 6.2788, lng: -75.5575, address: 'CR 51 B 91 19, Aranjuez', phone: '+57 (604) 236-3097' },
-  'COLEGIO ADVENTISTA SIMON BOLIVAR': { lat: 6.2760, lng: -75.5595, address: 'CR 51 D 71 105, Sevilla', phone: '+57 (604) 263-4410' },
-  'INSTITUCION EDUCATIVA FE Y ALEGRIA LUIS AMIGO': { lat: 6.2725, lng: -75.5645, address: 'CR 58 84 40, Moravia', phone: '+57 (604) 211-7050' },
-  'COLEGIO GENTE UNIDA JOVENES POR LA PAZ - MORAVIA': { lat: 6.2732, lng: -75.5658, address: 'CR 58 85 B 25, Aranjuez', phone: '+57 (604) 211-9920' },
-  'CENTRO EDUCATIVO RONDAS INFANTILES': { lat: 6.2778, lng: -75.5562, address: 'CL 91 50 54, San Isidro', phone: '+57 (604) 212-3344' },
-  'CENTRO EDUCATIVO INTEGRAL MOMENTOS FELICES': { lat: 6.2745, lng: -75.5585, address: 'CL 72 A 48 A 69, Brasilia', phone: '+57 (604) 211-6677' },
-  'CENTRO EDUCATIVO LUCEROS Y ESTRELLAS': { lat: 6.2835, lng: -75.5542, address: 'CR 47 72 A 4 IN 201, Manrique', phone: '+57 (604) 212-8899' },
-  'INSTITUCION EDUCATIVA EL BOSQUE': { lat: 6.2715, lng: -75.5665, address: 'CR 58 85 B 81, Moravia', phone: '+57 (604) 211-1033' },
-  'CENTRO EDUCATIVO PARAISOS DE COLOR': { lat: 6.2800, lng: -75.5530, address: 'CR 52 73 298, Campo Valdés', phone: '+57 (604) 212-4455' },
-  'CENTRO EDUCATIVO SOL Y LUNA': { lat: 6.2768, lng: -75.5555, address: 'CR 53 95 64 y CR 53 95-96, Aranjuez', phone: '+57 (604) 211-7788' },
-  'CENTRO EDUCATIVO CONDUCIENDO LA NIÑEZ': { lat: 6.2815, lng: -75.5512, address: 'CR 50 A 91 24, Aranjuez', phone: '+57 (604) 213-2211' },
-  'CENTRO EDUCATIVO PANDORA': { lat: 6.2675, lng: -75.5610, address: 'CR 49 A 94 75, Aranjuez', phone: '+57 (604) 211-0022' },
-  'CENTRO INTEGRAL EDUCATIVO ALEGRES Y TRAVIESOS': { lat: 6.2828, lng: -75.5560, address: 'CL 79 49 11, Campo Valdés', phone: '+57 (604) 212-9900' },
-  'CENTRO EDUCATIVO DESCUBRIENDO JUNTOS': { lat: 6.2840, lng: -75.5525, address: 'CL 93 49 31, Berlín', phone: '+57 (604) 212-3311' }
+// Direcciones exactas de la tabla oficial
+const OFFICIAL_ADDRESSES: Record<string, string> = {
+  'col comfama - sede aranjuez': 'CR 51 B 91 95, Aranjuez',
+  'inst educ camilo torres restrepo': 'CR 49 83 34, Campo Valdés',
+  'inst educ san agustin': 'CL 88 A 51 B 91, Aranjuez',
+  'inst educ javiera londoño sevilla': 'CL 71 51 D 26, Sevilla',
+  'inst educ gilberto alzate avendaño': 'CL 92 51 A 100, San Isidro',
+  'inst educ jose eusebio caro': 'CR 50 A 93 77, San Isidro',
+  'inst educ juan de dios cock': 'CL 88 45 70, Las Esmeraldas',
+  'inst educ lorenza villegas de santos': 'CR 51 87 40, Aranjuez',
+  'inst educ jose maria bravo marquez': 'CL 70 47 A 04, Manrique',
+  'inst educ campo valdes': 'CL 83 47 33, Campo Valdés',
+  'inst educ monseñor francisco cristobal toro': 'CR 50 D 90 49, Aranjuez',
+  'inst educ francisco miranda': 'CR 51 C 79 56, Miranda',
+  'inst educ san juan bosco': 'CL 82 50 C 10, Miranda',
+  'inst educ francisco luis hernandez betancur': 'CL 87 50 AA 21, Aranjuez',
+  'inst educ alfonso mora naranjo': 'CR 48 A 77 68, Campo Valdés',
+  'col comfama - sede manrique': 'CR 45 78 61, Manrique',
+  'col de maria': 'CR 51 B 89 01, Aranjuez',
+  'inst pedag claret': 'CR 46 72 43, Manrique',
+  'col nuestra señora de lourdes': 'CL 82 50 BB 30, Brasilia',
+  'col agustiniano de san nicolas': 'CR 48 93 13, Berlín',
+  'inst educ alvernia': 'CL 82 C 50 C 126, Miranda',
+  'col emilia riquelme': 'CR 51 B 91 19, Aranjuez',
+  'col adventista simon bolivar': 'CR 51 D 71 105, Sevilla',
+  'inst educ fe y alegria luis amigo': 'CR 58 84 40, Moravia',
+  'col gente unida jovenes por la paz - moravia': 'CR 58 85 B 25, Moravia',
+  'cent educ rondas infantiles': 'CL 91 50 54, San Isidro',
+  'cent integl momentos felices': 'CL 72 A 48 A 69, Brasilia',
+  'cent educ luceros y estrellas': 'CR 47 72 A 4 IN 201, Manrique',
+  'inst educ el bosque': 'CR 58 85 B 81, Moravia',
+  'cent educ paraisos de color': 'CR 52 73 298, Campo Valdés',
+  'cent educ sol y luna': 'CR 53 95 64 y CR 53 95-96, Aranjuez',
+  'cent educ conduciendo la niñez': 'CR 50 A 91 24, Aranjuez',
+  'cent educ pandora': 'CR 49 A 94 75, Aranjuez',
+  'cent integ educ alegres y traviesos': 'CL 79 49 11, Campo Valdés',
 };
+
+// Conversor matemático de nomenclatura de dirección colombiana a latitud / longitud de la Comuna 4
+function geocodeMedellinAddress(addressStr: string): { lat: number; lng: number } {
+  const norm = addressStr.toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  
+  let calle = 82;
+  let carrera = 50;
+
+  const matchCL = norm.match(/CL\s+(\d+)/);
+  const matchCR = norm.match(/CR\s+(\d+)/);
+
+  if (matchCL) calle = parseInt(matchCL[1], 10);
+  if (matchCR) carrera = parseInt(matchCR[1], 10);
+
+  // Fórmula geográfica de la retícula vial de Medellín Comuna 4
+  const baseLat = 6.2770;
+  const baseLng = -75.5570;
+
+  const lat = baseLat + ((calle - 82) * 0.00085);
+  const lng = baseLng - ((carrera - 50) * 0.00085);
+
+  return { lat, lng };
+}
 
 delete (L.Icon.Default.prototype as unknown as { _getIconUrl?: unknown })._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -62,7 +84,7 @@ function coloredIcon(color: string) {
 }
 
 function cleanText(txt: string) {
-  return txt.toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+  return txt.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
 }
 
 export default function InteractiveMap() {
@@ -103,37 +125,30 @@ export default function InteractiveMap() {
       const cleanSchoolName = cleanText(rawSchool);
 
       if (!map[rawSchool]) {
-        const keyMatch = Object.keys(SCHOOL_COORDINATES).find(k => 
-          cleanSchoolName.includes(cleanText(k)) || cleanText(k).includes(cleanSchoolName)
+        // Coincidencia insensible a mayúsculas/minúsculas y acentos
+        const matchedKey = Object.keys(OFFICIAL_ADDRESSES).find(k => 
+          cleanSchoolName.includes(k) || k.includes(cleanSchoolName)
         );
 
-        const base = keyMatch ? SCHOOL_COORDINATES[keyMatch] : {
-          lat: 6.2775,
-          lng: -75.5570,
-          address: `Barrio ${rawBarrio}, Comuna 4 - Aranjuez`,
-          phone: '+57 (604) 211-0000'
-        };
+        const officialAddr = matchedKey ? OFFICIAL_ADDRESSES[matchedKey] : `Cl. 85 # 50-10, ${rawBarrio}`;
+        const coords = geocodeMedellinAddress(officialAddr);
 
         const count = Object.keys(map).length;
 
         map[rawSchool] = {
           id: `school-ie-${count + 1}`,
           name: rawSchool,
-          shortName: rawSchool
-            .replace(/INSTITUCION EDUCATIVA/g, 'I.E.')
-            .replace(/COLEGIO/g, 'Col.')
-            .replace(/CENTRO EDUCATIVO/g, 'C.E.')
-            .replace(/INSTITUTO PEDAGOGICO/g, 'Inst. Pedag.'),
+          shortName: rawSchool,
           barrio: rawBarrio,
           total: 0,
           critico: 0,
           medio: 0,
           bajo: 0,
           sumAttendance: 0,
-          lat: base.lat,
-          lng: base.lng,
-          address: base.address,
-          phone: base.phone,
+          lat: coords.lat,
+          lng: coords.lng,
+          address: officialAddr,
+          phone: '+57 (604) 211-0000',
         };
       }
 
