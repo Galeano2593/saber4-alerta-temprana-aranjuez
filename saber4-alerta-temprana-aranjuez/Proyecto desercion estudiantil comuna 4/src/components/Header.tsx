@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import { GraduationCap, LayoutGrid, BarChart3, ShieldCheck } from 'lucide-react';
 
-export type ViewMode = 'comunidad' | 'analitica';
+export type ViewMode = 'Vista Territorial' | 'analitica';
 
 interface HeaderProps {
   view: ViewMode;
