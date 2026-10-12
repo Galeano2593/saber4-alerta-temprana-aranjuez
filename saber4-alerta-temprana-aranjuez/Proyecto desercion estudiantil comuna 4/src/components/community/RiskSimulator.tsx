@@ -1,18 +1,47 @@
 import { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Thermometer, BookOpen, CalendarCheck, ArrowRight, CheckCircle2, Phone, HeartHandshake } from 'lucide-react';
+import { Thermometer, BookOpen, CalendarCheck, ArrowRight, CheckCircle2, Phone, HeartHandshake, ShieldAlert } from 'lucide-react';
 import { SectionHeading } from './InteractiveMap';
-import { riskMeta, type RiskLevel } from '@/data/comuna4';
 
-function computeRisk(attendance: number, grade: number): RiskLevel {
+export type FourLevelRisk = 'bajo' | 'medio' | 'alto' | 'critico';
+
+const riskMeta: Record<FourLevelRisk, { label: string; color: string; bg: string; text: string }> = {
+  bajo: {
+    label: 'Riesgo Bajo / Estable',
+    color: '#10b981',
+    bg: 'bg-emerald-50',
+    text: 'text-emerald-800',
+  },
+  medio: {
+    label: 'Riesgo Medio',
+    color: '#f59e0b',
+    bg: 'bg-amber-50',
+    text: 'text-amber-800',
+  },
+  alto: {
+    label: 'Riesgo Alto',
+    color: '#f97316',
+    bg: 'bg-orange-50',
+    text: 'text-orange-800',
+  },
+  critico: {
+    label: 'Riesgo Crítico',
+    color: '#ef4444',
+    bg: 'bg-red-50',
+    text: 'text-red-800',
+  },
+};
+
+function computeRisk(attendance: number, grade: number): FourLevelRisk {
   const score = attendance * 0.6 + (grade / 5) * 100 * 0.4;
-  if (score >= 70) return 'estable';
-  if (score >= 40) return 'acompanamiento';
+  if (score >= 80) return 'bajo';
+  if (score >= 65) return 'medio';
+  if (score >= 50) return 'alto';
   return 'critico';
 }
 
-const routes: Record<RiskLevel, { title: string; steps: { icon: React.ReactNode; text: string }[] }> = {
-  estable: {
+const routes: Record<FourLevelRisk, { title: string; steps: { icon: React.ReactNode; text: string }[] }> = {
+  bajo: {
     title: 'Ruta de Mantenimiento',
     steps: [
       { icon: <CheckCircle2 className="w-4 h-4" />, text: 'Seguimiento mensual de asistencia y notas' },
@@ -20,20 +49,28 @@ const routes: Record<RiskLevel, { title: string; steps: { icon: React.ReactNode;
       { icon: <BookOpen className="w-4 h-4" />, text: 'Invitación a proyectos de liderazgo y robótica' },
     ],
   },
-  acompanamiento: {
-    title: 'Ruta de Acompañamiento',
+  medio: {
+    title: 'Ruta de Acompañamiento Preventivo',
     steps: [
-      { icon: <Phone className="w-4 h-4" />, text: 'Llamada al acudiente en 48 horas' },
-      { icon: <HeartHandshake className="w-4 h-4" />, text: 'Diálogo con orientación escolar' },
-      { icon: <BookOpen className="w-4 h-4" />, text: 'Plan de reforzamiento en áreas críticas' },
+      { icon: <Phone className="w-4 h-4" />, text: 'Llamada de verificación de asistencia por dirección' },
+      { icon: <HeartHandshake className="w-4 h-4" />, text: 'Tutoría académica en materias críticas' },
+      { icon: <BookOpen className="w-4 h-4" />, text: 'Taller de hábitos de estudio con orientación' },
+    ],
+  },
+  alto: {
+    title: 'Ruta de Intervención Prioritaria',
+    steps: [
+      { icon: <Phone className="w-4 h-4" />, text: 'Citación presencial a acudiente en 48 horas' },
+      { icon: <HeartHandshake className="w-4 h-4" />, text: 'Evaluación del entorno psicosocial con la dupla' },
+      { icon: <BookOpen className="w-4 h-4" />, text: 'Plan de nivelación intensivo e individualizado' },
     ],
   },
   critico: {
-    title: 'Ruta de Intervención Crítica',
+    title: 'Ruta de Intervención Crítica e Inmediata',
     steps: [
-      { icon: <Phone className="w-4 h-4" />, text: 'Notificación inmediata al acudiente (SMS/WhatsApp)' },
-      { icon: <HeartHandshake className="w-4 h-4" />, text: 'Visita domiciliaria del equipo psicosocial' },
-      { icon: <ArrowRight className="w-4 h-4" />, text: 'Remisión a programa de prevención de deserción' },
+      { icon: <ShieldAlert className="w-4 h-4" />, text: 'Notificación urgente al acudiente (SMS/WhatsApp)' },
+      { icon: <HeartHandshake className="w-4 h-4" />, text: 'Visita domiciliaria del equipo psicosocial SIAD' },
+      { icon: <ArrowRight className="w-4 h-4" />, text: 'Articulación comunitaria de retención escolar' },
     ],
   },
 };
@@ -46,7 +83,6 @@ export default function RiskSimulator() {
   const meta = riskMeta[risk];
   const route = routes[risk];
   const score = Math.round(attendance * 0.6 + (grade / 5) * 100 * 0.4);
-  const fillPct = Math.min(100, Math.max(0, score));
 
   return (
     <section className="bg-slate-50 border-y border-slate-200">
@@ -58,7 +94,7 @@ export default function RiskSimulator() {
         />
 
         <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Controls */}
+          {/* Controles */}
           <div className="bg-white rounded-2xl ring-1 ring-slate-200 p-6 sm:p-8 shadow-sm">
             <div className="space-y-8">
               <SliderControl
@@ -84,7 +120,7 @@ export default function RiskSimulator() {
               />
             </div>
 
-            {/* Thermometer */}
+            {/* Termómetro de 4 colores */}
             <div className="mt-10">
               <div className="flex items-center justify-between mb-3">
                 <span className="flex items-center gap-2 text-sm font-bold text-slate-700">
@@ -95,27 +131,37 @@ export default function RiskSimulator() {
                   {meta.label}
                 </span>
               </div>
-              <div className="relative h-8 rounded-full overflow-hidden bg-gradient-to-r from-success-500 via-warning-500 to-error-500">
-                {/* Zone dividers at 30% and 60% (inverted: 100-70=30, 100-40=60) */}
-                <div className="absolute top-0 bottom-0 w-px bg-white/40" style={{ left: '30%' }} />
-                <div className="absolute top-0 bottom-0 w-px bg-white/40" style={{ left: '60%' }} />
+
+              {/* Barra dividida en los 4 colores reales */}
+              <div className="relative h-8 rounded-full overflow-hidden flex ring-1 ring-slate-200">
+                <div className="w-1/4 bg-emerald-500 h-full" title="Bajo" />
+                <div className="w-1/4 bg-amber-500 h-full" title="Medio" />
+                <div className="w-1/4 bg-orange-500 h-full" title="Alto" />
+                <div className="w-1/4 bg-red-500 h-full" title="Crítico" />
+
+                {/* Marcador dinámico */}
                 <motion.div
-                  className="absolute top-0 bottom-0 w-1.5 bg-white rounded-full shadow-lg ring-2 ring-slate-900/20"
-                  animate={{ left: `${100 - fillPct}%` }}
+                  className="absolute top-0 bottom-0 w-2 bg-white rounded-full shadow-lg ring-2 ring-slate-900"
+                  animate={{ left: `${Math.min(95, Math.max(5, score))}%` }}
                   transition={{ type: 'spring', stiffness: 200, damping: 24 }}
                   style={{ transform: 'translateX(-50%)' }}
                 />
-                <div className="absolute inset-0 flex items-center justify-between px-3 text-[10px] font-bold text-white/90 pointer-events-none">
-                  <span>Estable</span><span>Acompañamiento</span><span>Crítico</span>
-                </div>
               </div>
+
+              <div className="flex justify-between text-[10px] font-bold text-slate-500 mt-1 px-1">
+                <span>Riesgo Crítico</span>
+                <span>Riesgo Alto</span>
+                <span>Riesgo Medio</span>
+                <span>Estable</span>
+              </div>
+
               <p className="mt-3 text-center text-sm text-slate-500">
                 Índice de estabilidad: <span className="font-bold text-slate-800">{score}/100</span>
               </p>
             </div>
           </div>
 
-          {/* Route */}
+          {/* Ruta */}
           <motion.div
             key={risk}
             initial={{ opacity: 0, x: 20 }}
@@ -150,7 +196,7 @@ export default function RiskSimulator() {
 
             <div className="mt-6 p-4 rounded-xl bg-white/60">
               <p className="text-xs text-slate-500">
-                Saber4 cruza asistencia, promedio y señales del entorno para activar la ruta correcta en el momento oportuno — antes de que un joven abandone el aula.
+                SIAD Aranjuez cruza asistencia, promedio y señales del entorno para activar la ruta correcta en el momento oportuno — antes de que un joven abandone el aula.
               </p>
             </div>
           </motion.div>
