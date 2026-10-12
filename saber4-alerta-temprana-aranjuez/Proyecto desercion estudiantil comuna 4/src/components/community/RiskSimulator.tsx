@@ -34,30 +34,33 @@ const riskMeta: Record<FourLevelRisk, { label: string; color: string; bg: string
 
 function computeRisk(attendance: number, grade: number): FourLevelRisk {
   const score = attendance * 0.6 + (grade / 5) * 100 * 0.4;
-  if (score >= 80) return 'bajo';
-  if (score >= 65) return 'medio';
-  if (score >= 50) return 'alto';
+
+  // Candado pedagógico: Si la nota es reprobatoria (< 3.0), se fuerza mínimo a Riesgo Medio/Alto
+  if (grade < 3.0) {
+    if (score < 55 || attendance < 60) return 'critico';
+    if (score < 72 || attendance < 80) return 'alto';
+    return 'medio';
+  }
+
+  if (score >= 82 && attendance >= 90) return 'bajo';
+  if (score >= 68) return 'medio';
+  if (score >= 52) return 'alto';
   return 'critico';
 }
 
-// Función para calcular la posición exactísima del marcador dentro de los 4 bloques de color (0% a 100%)
 function getExactMarkerPosition(score: number): number {
-  // Bloque 1: Crítico (0% a 25% de la barra) -> Mapea score de 30 a 50
   if (score < 50) {
     const pct = (score - 30) / (50 - 30);
     return Math.max(3, Math.min(22, pct * 25));
   }
-  // Bloque 2: Alto (25% a 50% de la barra) -> Mapea score de 50 a 65
   if (score < 65) {
     const pct = (score - 50) / (65 - 50);
     return 25 + pct * 25;
   }
-  // Bloque 3: Medio (50% a 75% de la barra) -> Mapea score de 65 a 80
   if (score < 80) {
     const pct = (score - 65) / (80 - 65);
     return 50 + pct * 25;
   }
-  // Bloque 4: Estable (75% a 100% de la barra) -> Mapea score de 80 a 100
   const pct = (score - 80) / (100 - 80);
   return Math.min(97, 75 + pct * 25);
 }
@@ -75,7 +78,7 @@ const routes: Record<FourLevelRisk, { title: string; steps: { icon: React.ReactN
     title: 'Ruta de Acompañamiento Preventivo',
     steps: [
       { icon: <Phone className="w-4 h-4" />, text: 'Llamada de verificación de asistencia por dirección' },
-      { icon: <HeartHandshake className="w-4 h-4" />, text: 'Tutoría académica en materias críticas' },
+      { icon: <HeartHandshake className="w-4 h-4" />, text: 'Tutoría académica urgente en materias con baja nota' },
       { icon: <BookOpen className="w-4 h-4" />, text: 'Taller de hábitos de estudio con orientación' },
     ],
   },
@@ -143,7 +146,7 @@ export default function RiskSimulator() {
               />
             </div>
 
-            {/* Termómetro de 4 colores con posición exacta */}
+            {/* Termómetro de 4 colores */}
             <div className="mt-10">
               <div className="flex items-center justify-between mb-3">
                 <span className="flex items-center gap-2 text-sm font-bold text-slate-700">
@@ -155,14 +158,12 @@ export default function RiskSimulator() {
                 </span>
               </div>
 
-              {/* Barra dividida en 4 sectores de 25% cada uno */}
               <div className="relative h-8 rounded-full overflow-hidden flex ring-1 ring-slate-200">
                 <div className="w-1/4 bg-red-500 h-full" title="Riesgo Crítico" />
                 <div className="w-1/4 bg-orange-500 h-full" title="Riesgo Alto" />
                 <div className="w-1/4 bg-amber-500 h-full" title="Riesgo Medio" />
                 <div className="w-1/4 bg-emerald-500 h-full" title="Estable / Bajo" />
 
-                {/* Indicador blanco calibrado exactamente al bloque del estado actual */}
                 <motion.div
                   className="absolute top-0 bottom-0 w-2.5 bg-white rounded-full shadow-lg ring-2 ring-slate-900"
                   animate={{ left: `${markerPos}%` }}
