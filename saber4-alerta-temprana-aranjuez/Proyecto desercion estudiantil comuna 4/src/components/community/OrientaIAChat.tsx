@@ -10,28 +10,55 @@ interface Message {
 }
 
 const QUICK_OPTIONS = [
-  { id: 'carreras', label: 'Carreras técnicas en el ITM', icon: <GraduationCap className="w-4 h-4" /> },
-  { id: 'becas', label: 'Becas locales en Medellín', icon: <Coins className="w-4 h-4" /> },
-  { id: 'empleo', label: 'Rutas de empleo joven', icon: <Briefcase className="w-4 h-4" /> },
-  { id: 'orientacion', label: 'No sé qué estudiar', icon: <Sparkles className="w-4 h-4" /> },
+  { id: 'carreras', label: 'Carreras de Software y Tecnología en ITM', icon: <GraduationCap className="w-4 h-4" /> },
+  { id: 'becas', label: 'Becas Sapiencia y Matrícula Cero', icon: <Coins className="w-4 h-4" /> },
+  { id: 'empleo', label: 'Empleo Joven y Agencia SENA', icon: <Briefcase className="w-4 h-4" /> },
+  { id: 'orientacion', label: '¿No sabes qué estudiar? Test Rápido', icon: <Sparkles className="w-4 h-4" /> },
 ];
 
-const RESPONSES: Record<string, string> = {
-  carreras:
-    'En el ITM (Institución Universitaria Pascual Bravo) y el SENA hay carreras técnicas y tecnológicas ideales para la Comuna 4: Análisis y Desarrollo de Software, Mantenimiento de Equipos de Cómputo, Sistemas de Telecomunicaciones, y Tecnología en Electricidad. Muchas ofrecen jornada nocturna para que puedas trabajar y estudiar. ¿Quieres que te detalle los requisitos de inscripción?',
-  becas:
-    'En Medellín existen varias becas para jóvenes de la Comuna 4: la Beca "Medellín Convive" del Municipio, los programas de la Alcaldía de Medellín a través de la Secretaría de Educación, y los apoyos de Sapiencia para educación superior. También el Inder y la Comuna 4 ofrecen cupos en programas de formación. ¿Te ayudo a revisar cuáles se ajustan a tu promedio?',
-  empleo:
-    'Para conseguir empleo siendo joven en Aranjuez te recomiendo: 1) Inscribir tu hoja de vida en el Agencia de Empleo de la Cámara de Comercio, 2) Programas de primer empleo del Municipio, 3) Aprendices SENA — muchas empresas de la zona buscan técnicos y tecnólogos, 4) Ferias de empleo que se hacen en el Parque de Aranjuez. ¿Quieres que te diga cómo armar tu hoja de vida?',
-  orientacion:
-    '¡Tranquilo, es normal! Para orientarte podemos empezar con tres preguntas: ¿Qué materias te gustan más? ¿Prefieres trabajar con personas, máquinas o ideas? ¿Te gustaría estudiar algo corto (técnico) o largo (profesional)? Cuéntame y te sugiero rutas reales que existen aquí en Medellín.',
-  default:
-    'Soy OrientaIA, tu orientador vocacional. Puedo ayudarte con carreras técnicas del ITM, becas locales en Medellín, rutas de empleo joven y orientación si no sabes qué estudiar. Toca uno de los botones de abajo para empezar.',
-};
+function cleanText(txt: string): string {
+  return txt.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+}
+
+function resolveAIResponse(userText: string): string {
+  const norm = cleanText(userText);
+
+  // 1. Desarrollo de Software / Programación / ITM
+  if (norm.includes('soft') || norm.includes('progra') || norm.includes('siste') || norm.includes('itm') || norm.includes('code') || norm.includes('desarro')) {
+    return 'El ITM (Instituto Tecnológico Metropolitano) ofrece programas clave en tecnología como la Tecnología en Desarrollo de Software y la Tecnología en Sistemas de Información. Son carreras de 6 semestres con alta inserción laboral en Medellín. Además, el SENA ofrece la Tecnología en Análisis y Desarrollo de Software (ADSO) 100% gratuita. ¿Deseas saber las fechas del próximo proceso de admisión?';
+  }
+
+  // 2. Becas / Sapiencia / Matrícula Cero / Financiación
+  if (norm.includes('beca') || norm.includes('sapien') || norm.includes('gratu') || norm.includes('pagar') || norm.includes('epm') || norm.includes('plata') || norm.includes('dinero')) {
+    return 'Para estudiar gratis o con apoyo económico en Aranjuez y Comuna 4 cuentas con: 1) Matrícula Cero de la Alcaldía de Medellín para IES públicas (ITM, Pascual Bravo, Colegio Mayor), 2) Fondo Beca Tecnologías Sapiencia, 3) Fondos Presupuesto Participativo de la Comuna 4. Requisitos principales: vivir en estrato 1, 2 o 3 y haber egresado de un colegio oficial. ¿Te gustaría conocer el calendario de postulaciones de Sapiencia?';
+  }
+
+  // 3. Empleo / Trabajo / Experiencia / SENA / Prácticas
+  if (norm.includes('empleo') || norm.includes('traba') || norm.includes('chamba') || norm.includes('hoja') || norm.includes('camara') || norm.includes('sena')) {
+    return 'Para ingresar al mercado laboral siendo joven en la Comuna 4 dispones de: 1) Agencia Pública de Empleo del SENA con vacantes para aprendices, 2) Ruta N con programas de formación exprés en tecnología e inserción directa, 3) Centro del Valle de Software Aranjuez con asesoría para emprendimiento y primer empleo. ¿Quieres consejos para estructurar tu hoja de vida sin experiencia previa?';
+  }
+
+  // 4. Orientación / Dudas / No sé qué estudiar
+  if (norm.includes('orienta') || norm.includes('estudia') || norm.includes('nose') || norm.includes('no se') || norm.includes('gust') || norm.includes('ayuda')) {
+    return '¡Es perfectamente normal dudar! Vamos a definir tu perfil con 3 preguntas rápidas: 1) ¿Prefieres resolver problemas lógicos y tecnología, trabajar con personas en salud/comunidad, o el diseño y la creatividad? 2) ¿Prefieres una carrera corta (técnica/tecnológica de 2-3 años) o profesional? Respóndeme con tus gustos y te mostraré las 3 mejores opciones activas en Medellín.';
+  }
+
+  // 5. Inscripciones / Requisitos / Documentos
+  if (norm.includes('inscri') || norm.includes('requisi') || norm.includes('documen') || norm.includes('fech') || norm.includes('pape')) {
+    return 'Los requisitos generales para ingresar a la educación superior pública en Medellín son: 1) Fotocopia del documento de identidad, 2) Acta de grado o diploma de bachiller, 3) Pruebas Saber 11 (Icfes), 4) Cuenta de servicios públicos reciente para certificar residencia e historia socioeconómica. ¿A qué institución deseas postularte?';
+  }
+
+  // Respuesta por defecto enriquecida
+  return 'Hola, soy OrientaIA, el orientador vocacional del SIAD Aranjuez. Puedo asesorarte con detalle sobre ofertas académicas del ITM y SENA, becas de Sapiencia, empleo joven y orientación vocacional. Escribe tu pregunta sobre carreras, inscripciones o becas y te guiaré con datos reales de la Comuna 4.';
+}
 
 export default function OrientaIAChat() {
   const [messages, setMessages] = useState<Message[]>([
-    { id: 1, role: 'bot', text: RESPONSES.default },
+    {
+      id: 1,
+      role: 'bot',
+      text: '¡Hola! Soy OrientaIA, tu orientador vocacional en la Comuna 4. Puedo ayudarte a resolver dudas sobre carreras técnicas en el ITM, becas de Sapiencia, empleo joven en Medellín u orientación si no estás seguro de qué estudiar. ¿En qué te puedo asesorar hoy?',
+    },
   ]);
   const [input, setInput] = useState('');
   const [typing, setTyping] = useState(false);
@@ -50,11 +77,12 @@ export default function OrientaIAChat() {
     setInput('');
     setTyping(true);
 
-    const key = QUICK_OPTIONS.find((o) => text.includes(o.label))?.id ?? 'default';
+    const botReply = resolveAIResponse(text);
+
     setTimeout(() => {
       setTyping(false);
-      setMessages((m) => [...m, { id: Date.now() + 1, role: 'bot', text: RESPONSES[key] }]);
-    }, 1100);
+      setMessages((m) => [...m, { id: Date.now() + 1, role: 'bot', text: botReply }]);
+    }, 900);
   };
 
   return (
@@ -67,7 +95,7 @@ export default function OrientaIAChat() {
 
       <div className="mt-8 max-w-3xl mx-auto">
         <div className="bg-white rounded-2xl ring-1 ring-slate-200 shadow-xl overflow-hidden flex flex-col" style={{ height: '520px' }}>
-          {/* Chat header */}
+          {/* Header */}
           <div className="flex items-center gap-3 px-5 py-4 bg-gradient-to-r from-primary-700 to-primary-600">
             <div className="w-10 h-10 rounded-xl bg-white/15 ring-1 ring-white/30 flex items-center justify-center">
               <Bot className="w-6 h-6 text-white" />
@@ -80,7 +108,7 @@ export default function OrientaIAChat() {
             </div>
           </div>
 
-          {/* Messages */}
+          {/* Mensajes */}
           <div ref={scrollRef} className="flex-1 overflow-y-auto p-5 space-y-4 bg-slate-50">
             <AnimatePresence initial={false}>
               {messages.map((m) => (
@@ -90,19 +118,22 @@ export default function OrientaIAChat() {
                   animate={{ opacity: 1, y: 0 }}
                   className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
-                  <div className={`max-w-[80%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${
-                    m.role === 'user'
-                      ? 'bg-primary-600 text-white rounded-br-sm'
-                      : 'bg-white ring-1 ring-slate-200 text-slate-700 rounded-bl-sm'
-                  }`}>
+                  <div
+                    className={`max-w-[85%] px-4 py-3 rounded-2xl text-sm leading-relaxed shadow-sm ${
+                      m.role === 'user'
+                        ? 'bg-primary-600 text-white rounded-br-none'
+                        : 'bg-white ring-1 ring-slate-200 text-slate-800 rounded-bl-none'
+                    }`}
+                  >
                     {m.text}
                   </div>
                 </motion.div>
               ))}
             </AnimatePresence>
+
             {typing && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex justify-start">
-                <div className="bg-white ring-1 ring-slate-200 px-4 py-3 rounded-2xl rounded-bl-sm flex gap-1.5">
+                <div className="bg-white ring-1 ring-slate-200 px-4 py-3 rounded-2xl rounded-bl-none flex gap-1.5">
                   {[0, 1, 2].map((i) => (
                     <motion.span
                       key={i}
@@ -116,7 +147,7 @@ export default function OrientaIAChat() {
             )}
           </div>
 
-          {/* Quick options */}
+          {/* Opciones rápidas */}
           <div className="px-4 py-3 bg-white border-t border-slate-100 flex gap-2 overflow-x-auto">
             {QUICK_OPTIONS.map((o) => (
               <button
@@ -130,15 +161,18 @@ export default function OrientaIAChat() {
             ))}
           </div>
 
-          {/* Input */}
+          {/* Caja de entrada */}
           <form
-            onSubmit={(e) => { e.preventDefault(); send(input); }}
+            onSubmit={(e) => {
+              e.preventDefault();
+              send(input);
+            }}
             className="flex items-center gap-2 p-3 bg-white border-t border-slate-100"
           >
             <input
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Escribe tu pregunta…"
+              placeholder="Escribe tu duda (ej: becas, desarrollo de software, SENA)..."
               className="flex-1 px-4 py-2.5 rounded-xl bg-slate-100 text-sm text-slate-800 placeholder:text-slate-400 outline-none focus:ring-2 ring-primary-500"
             />
             <button
@@ -149,8 +183,9 @@ export default function OrientaIAChat() {
             </button>
           </form>
         </div>
+
         <p className="mt-3 text-center text-xs text-slate-400 flex items-center justify-center gap-1">
-          <MapPin className="w-3 h-3" /> OrientaIA es una demostración con respuestas simuladas para la Comuna 4.
+          <MapPin className="w-3 h-3" /> OrientaIA - Asistente de Orientación Vocacional SIAD Comuna 4 Aranjuez.
         </p>
       </div>
     </section>
