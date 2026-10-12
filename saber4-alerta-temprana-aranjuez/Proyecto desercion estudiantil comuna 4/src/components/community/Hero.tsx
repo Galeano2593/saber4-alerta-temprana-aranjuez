@@ -22,7 +22,7 @@ export default function Hero() {
             Comuna 4 · Aranjuez, Medellín
           </span>
           <h2 className="font-display text-3xl sm:text-5xl font-extrabold text-white leading-[1.1] tracking-tight">
-            SIAD ARANJUEZ: Tecnología e Inteligencia de Datos al Servicio de la Educación en{' '}
+            SIA ARANJUEZ: Tecnología e Inteligencia de Datos al Servicio de la Educación en{' '}
             <span className="bg-gradient-to-r from-accent-400 to-accent-300 bg-clip-text text-transparent">Aranjuez</span>
           </h2>
           <p className="mt-5 text-base sm:text-lg text-primary-100 leading-relaxed max-w-2xl">
