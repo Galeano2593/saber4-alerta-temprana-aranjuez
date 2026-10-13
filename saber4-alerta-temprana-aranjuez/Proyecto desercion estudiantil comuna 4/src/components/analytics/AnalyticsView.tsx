@@ -4,7 +4,7 @@ import * as XLSX from 'xlsx';
 import {
   UploadCloud, FileSpreadsheet, Filter, Bell, Search, CheckCircle2,
   TrendingUp, AlertTriangle, Users, X, BookOpen, GraduationCap, ShieldAlert,
-  Download
+  Download, School
 } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -33,6 +33,7 @@ export default function AnalyticsView() {
     return localStorage.getItem('siad_file_name');
   });
 
+  const [schoolFilter, setSchoolFilter] = useState<string>('todos');
   const [barrioFilter, setBarrioFilter] = useState<string>('todos');
   const [riskFilter, setRiskFilter] = useState<string>('todos');
   const [gradeFilter, setGradeFilter] = useState<string>('todos');
@@ -43,7 +44,18 @@ export default function AnalyticsView() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Extrae dinámicamente los barrios presentes en los datos subidos
+  // Extrae dinámicamente los colegios presentes en los datos
+  const dynamicSchools = useMemo(() => {
+    const schoolsSet = new Set<string>();
+    students.forEach((s) => {
+      if (s.school) {
+        schoolsSet.add(s.school.trim());
+      }
+    });
+    return Array.from(schoolsSet).sort();
+  }, [students]);
+
+  // Extrae dinámicamente los barrios presentes en los datos
   const dynamicBarrios = useMemo(() => {
     const barriosSet = new Set<string>();
     students.forEach((s) => {
@@ -61,6 +73,9 @@ export default function AnalyticsView() {
   // Registros filtrados dinámicamente
   const filtered = useMemo(() => {
     return students.filter((s) => {
+      if (schoolFilter !== 'todos') {
+        if (normalizeText(s.school || '') !== normalizeText(schoolFilter)) return false;
+      }
       if (barrioFilter !== 'todos') {
         if (normalizeText(s.barrio || '') !== normalizeText(barrioFilter)) return false;
       }
@@ -81,7 +96,7 @@ export default function AnalyticsView() {
       }
       return true;
     });
-  }, [students, barrioFilter, riskFilter, gradeFilter, search]);
+  }, [students, schoolFilter, barrioFilter, riskFilter, gradeFilter, search]);
 
   const counts = useMemo(() => {
     const c = { bajo: 0, medio: 0, alto: 0, critico: 0 };
@@ -235,38 +250,31 @@ export default function AnalyticsView() {
             const genderTag = row.sexo ? ` (${row.sexo === 'hombres' ? 'Masc.' : row.sexo === 'mujeres' ? 'Fem.' : row.sexo})` : '';
             const fullName = `${nameVal}${genderTag}`;
 
-            // Asistencia
-            const rawAttendance = row['Asistencia (%)'] || row.asistencia;
+            // Asistencia (%)
+            const rawAttendance = row['Asistencia (%)'] || row.asistencia || row.Asistencia;
             let calculatedAttendance = 90;
             if (rawAttendance !== undefined) {
-              calculatedAttendance = parseFloat(rawAttendance.toString().replace('%', '').trim()) || 90;
-            } else {
-              const reprobRate = row.tasa_reprobacion || 0;
-              const dropRate = row.tasa_desercion || 0;
-              calculatedAttendance = Math.max(65, Math.min(98, Math.round(100 - (reprobRate * 1.2) - (dropRate * 2))));
+              calculatedAttendance = parseFloat(rawAttendance.toString().replace('%', '').replace(',', '.').trim()) || 90;
             }
 
-            // Promedio (Ajuste preciso de escala 0.0 - 5.0)
-            const rawProm = row.Promedio || row.promedio || row.punt_global_promedio;
+            // Promedio ("3,7" -> 3.7)
+            const rawProm = row.Promedio || row.promedio || row.Puntaje || row.punt_global_promedio;
             let avgGradeVal = 3.5;
-            if (rawProm !== undefined) {
-              const parsedP = parseFloat(rawProm.toString().replace(',', '.'));
-              if (parsedP > 50) {
-                avgGradeVal = parseFloat((parsedP / 100).toFixed(1));
-              } else if (parsedP > 5) {
-                avgGradeVal = parseFloat((parsedP / 10).toFixed(1));
-              } else {
-                avgGradeVal = parseFloat(parsedP.toFixed(1));
+            if (rawProm !== undefined && rawProm !== null) {
+              const cleanPromStr = rawProm.toString().replace(',', '.').trim();
+              const parsedP = parseFloat(cleanPromStr);
+              if (!isNaN(parsedP)) {
+                avgGradeVal = parsedP > 10 ? parseFloat((parsedP / 10).toFixed(1)) : parseFloat(parsedP.toFixed(1));
               }
             }
 
-            // Nivel de Riesgo (Recalculado según desempeño académico y asistencia)
+            // Nivel de Riesgo
             const rawRisk = (row['Nivel de Riesgo'] || row.nivel_riesgo || row.riesgo || '').toString().trim().toLowerCase();
             let riskLevel: RiskLevel = 'estable';
 
-            if (avgGradeVal < 3.0 || calculatedAttendance < 75 || rawRisk.includes('critico') || rawRisk.includes('crítico') || rawRisk.includes('alto')) {
+            if (rawRisk.includes('critico') || rawRisk.includes('crítico') || rawRisk.includes('alto') || avgGradeVal < 2.8 || calculatedAttendance < 70) {
               riskLevel = 'critico';
-            } else if (avgGradeVal < 3.5 || calculatedAttendance < 85 || rawRisk.includes('medio') || rawRisk.includes('acompañamiento') || rawRisk.includes('acompaniamiento')) {
+            } else if (rawRisk.includes('medio') || rawRisk.includes('acompañamiento') || rawRisk.includes('acompaniamiento') || avgGradeVal < 3.5 || calculatedAttendance < 85) {
               riskLevel = 'acompanamiento';
             } else {
               riskLevel = 'estable';
@@ -289,10 +297,10 @@ export default function AnalyticsView() {
               guardianPhone: row['Teléfono Acudiente'] || row.telefono_acudiente || row.telefono || '+57 300 000 0000',
               lastAlert: `IRTE: ${row.irte_c4 ? parseFloat(row.irte_c4).toFixed(1) : '35.0'}/100`,
               riskBreakdown: {
-                academico: Math.round(row.riesgo_reprobacion || (riskLevel === 'critico' ? 80 : avgGradeVal < 3.5 ? 50 : 20)),
-                economico: Math.round(row.riesgo_matricula || (riskLevel === 'critico' ? 75 : 30)),
-                personal: Math.round(row.riesgo_saber11 || (riskLevel === 'critico' ? 60 : 25)),
-                familiar: Math.round(row.riesgo_desercion || (riskLevel === 'critico' ? 70 : 20)),
+                academico: Math.round(row.riesgo_reprobacion || (riskLevel === 'critico' ? 80 : avgGradeVal < 3.5 ? 45 : 15)),
+                economico: Math.round(row.riesgo_matricula || (riskLevel === 'critico' ? 75 : 25)),
+                personal: Math.round(row.riesgo_saber11 || (riskLevel === 'critico' ? 60 : 20)),
+                familiar: Math.round(row.riesgo_desercion || (riskLevel === 'critico' ? 70 : 15)),
               }
             };
           });
@@ -404,9 +412,20 @@ export default function AnalyticsView() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Buscar por nombre o I.E.…"
-                className="pl-9 pr-3 py-2 rounded-lg bg-slate-100 text-sm outline-none focus:ring-2 ring-primary-500 w-48"
+                className="pl-9 pr-3 py-2 rounded-lg bg-slate-100 text-sm outline-none focus:ring-2 ring-primary-500 w-44"
               />
             </div>
+
+            {/* Nuevo Filtro de Colegios */}
+            <FilterSelect
+              icon={<School className="w-4 h-4" />}
+              value={schoolFilter}
+              onChange={setSchoolFilter}
+              options={[
+                { value: 'todos', label: 'Todos los colegios' },
+                ...dynamicSchools.map((s) => ({ value: s, label: s }))
+              ]}
+            />
 
             <FilterSelect
               icon={<BookOpen className="w-4 h-4" />}
@@ -599,7 +618,7 @@ function FilterSelect({
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="pl-9 pr-8 py-2 rounded-lg bg-slate-100 text-sm font-medium text-slate-700 outline-none focus:ring-2 ring-primary-500 appearance-none cursor-pointer"
+        className="pl-9 pr-8 py-2 rounded-lg bg-slate-100 text-sm font-medium text-slate-700 outline-none focus:ring-2 ring-primary-500 appearance-none cursor-pointer max-w-[200px] truncate"
       >
         {options.map((o) => (
           <option key={o.value} value={o.value}>{o.label}</option>
