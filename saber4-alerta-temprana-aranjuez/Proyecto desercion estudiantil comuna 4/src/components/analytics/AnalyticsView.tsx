@@ -1,10 +1,10 @@
 import { useState, useMemo, useRef } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import * as XLSX from 'xlsx';
 import {
   UploadCloud, FileSpreadsheet, Filter, Bell, Search, CheckCircle2,
   TrendingUp, AlertTriangle, Users, X, BookOpen, GraduationCap, ShieldAlert,
-  Download, School
+  Download, School, RotateCcw
 } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -97,6 +97,25 @@ export default function AnalyticsView() {
       return true;
     });
   }, [students, schoolFilter, barrioFilter, riskFilter, gradeFilter, search]);
+
+  // Identifica si hay algún filtro activo
+  const hasActiveFilters = useMemo(() => {
+    return (
+      schoolFilter !== 'todos' ||
+      barrioFilter !== 'todos' ||
+      riskFilter !== 'todos' ||
+      gradeFilter !== 'todos' ||
+      search.trim() !== ''
+    );
+  }, [schoolFilter, barrioFilter, riskFilter, gradeFilter, search]);
+
+  const clearAllFilters = () => {
+    setSchoolFilter('todos');
+    setBarrioFilter('todos');
+    setRiskFilter('todos');
+    setGradeFilter('todos');
+    setSearch('');
+  };
 
   const counts = useMemo(() => {
     const c = { bajo: 0, medio: 0, alto: 0, critico: 0 };
@@ -245,19 +264,16 @@ export default function AnalyticsView() {
 
         if (rawMatrix.length > 0) {
           const parsedStudents: StudentRecord[] = rawMatrix.map((row, idx) => {
-            // Nombre del estudiante
             const nameVal = row.Estudiante || row.estudiante || row.nombre_institucion_due || row.establecimiento_educativo || `Estudiante #${idx + 1}`;
             const genderTag = row.sexo ? ` (${row.sexo === 'hombres' ? 'Masc.' : row.sexo === 'mujeres' ? 'Fem.' : row.sexo})` : '';
             const fullName = `${nameVal}${genderTag}`;
 
-            // Asistencia (%)
             const rawAttendance = row['Asistencia (%)'] || row.asistencia || row.Asistencia;
             let calculatedAttendance = 90;
             if (rawAttendance !== undefined) {
               calculatedAttendance = parseFloat(rawAttendance.toString().replace('%', '').replace(',', '.').trim()) || 90;
             }
 
-            // Promedio ("3,7" -> 3.7)
             const rawProm = row.Promedio || row.promedio || row.Puntaje || row.punt_global_promedio;
             let avgGradeVal = 3.5;
             if (rawProm !== undefined && rawProm !== null) {
@@ -268,7 +284,6 @@ export default function AnalyticsView() {
               }
             }
 
-            // Nivel de Riesgo
             const rawRisk = (row['Nivel de Riesgo'] || row.nivel_riesgo || row.riesgo || '').toString().trim().toLowerCase();
             let riskLevel: RiskLevel = 'estable';
 
@@ -389,9 +404,9 @@ export default function AnalyticsView() {
 
         <ChartCard title="Distribución por barrio (Comuna 4)">
           <ResponsiveContainer width="100%" height={260}>
-            <BarChart data={dynamicRiskByBarrio} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+            <BarChart data={dynamicRiskByBarrio} margin={{ top: 10, right: 10, left: -20, bottom: 25 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-              <XAxis dataKey="barrio" tick={{ fontSize: 10, fill: '#64748b' }} angle={-35} textAnchor="end" height={70} interval={0} />
+              <XAxis dataKey="barrio" tick={{ fontSize: 10, fill: '#64748b' }} angle={-35} textAnchor="end" height={60} interval={0} />
               <YAxis tick={{ fontSize: 12, fill: '#64748b' }} />
               <Tooltip contentStyle={{ borderRadius: 12, border: '1px solid #e2e8f0', fontSize: 12 }} />
               <Bar dataKey="estable" stackId="a" fill="#10b981" name="Bajo" />
@@ -403,7 +418,7 @@ export default function AnalyticsView() {
       </div>
 
       {/* Barra de Filtros */}
-      <div className="bg-white rounded-2xl ring-1 ring-slate-200 shadow-sm p-5 mb-6">
+      <div className="bg-white rounded-2xl ring-1 ring-slate-200 shadow-sm p-5 mb-4">
         <div className="flex flex-col lg:flex-row lg:items-center gap-4 justify-between">
           <div className="flex flex-wrap items-center gap-3">
             <div className="relative">
@@ -416,7 +431,7 @@ export default function AnalyticsView() {
               />
             </div>
 
-            {/* Nuevo Filtro de Colegios */}
+            {/* Filtro de Colegios */}
             <FilterSelect
               icon={<School className="w-4 h-4" />}
               value={schoolFilter}
@@ -482,6 +497,64 @@ export default function AnalyticsView() {
           </div>
         </div>
       </div>
+
+      {/* 🎯 Indicador de "Filtros Activos" */}
+      <AnimatePresence>
+        {hasActiveFilters && (
+          <motion.div
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            className="bg-primary-50/80 border border-primary-200/80 rounded-xl px-4 py-2.5 mb-6 flex items-center justify-between text-xs sm:text-sm text-primary-900"
+          >
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-bold flex items-center gap-1.5 text-primary-700">
+                <Filter className="w-3.5 h-3.5" />
+                Filtros activos:
+              </span>
+              <span>
+                Mostrando <strong className="font-extrabold text-primary-800">{filtered.length}</strong> de <strong>{students.length}</strong> registros
+              </span>
+              <span className="text-primary-300">|</span>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                {schoolFilter !== 'todos' && (
+                  <span className="bg-white/80 border border-primary-200 px-2 py-0.5 rounded-md font-medium text-primary-800">
+                    Colegio: {schoolFilter}
+                  </span>
+                )}
+                {gradeFilter !== 'todos' && (
+                  <span className="bg-white/80 border border-primary-200 px-2 py-0.5 rounded-md font-medium text-primary-800">
+                    Grado: {gradeFilter}
+                  </span>
+                )}
+                {barrioFilter !== 'todos' && (
+                  <span className="bg-white/80 border border-primary-200 px-2 py-0.5 rounded-md font-medium text-primary-800">
+                    Barrio: {barrioFilter}
+                  </span>
+                )}
+                {riskFilter !== 'todos' && (
+                  <span className="bg-white/80 border border-primary-200 px-2 py-0.5 rounded-md font-medium text-primary-800 uppercase">
+                    Riesgo: {riskFilter}
+                  </span>
+                )}
+                {search.trim() !== '' && (
+                  <span className="bg-white/80 border border-primary-200 px-2 py-0.5 rounded-md font-medium text-primary-800">
+                    Búsqueda: "{search}"
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <button
+              onClick={clearAllFilters}
+              className="ml-3 inline-flex items-center gap-1 text-xs font-bold text-primary-700 hover:text-primary-900 hover:underline shrink-0"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              Limpiar filtros
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Tabla Principal */}
       <div className="bg-white rounded-2xl ring-1 ring-slate-200 shadow-sm overflow-hidden">
