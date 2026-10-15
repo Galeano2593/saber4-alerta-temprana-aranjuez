@@ -144,7 +144,7 @@ export default function AnalyticsView() {
     return c;
   }, [students]);
 
-  // 📊 GRÁFICO 1: Análisis por dimensiones calculado con los datos del filtro
+  // 📊 GRÁFICO 1: Análisis por dimensiones
   const riskDimensionsData = useMemo(() => {
     const total = filtered.length || 1;
     let acad = 0, econ = 0, pers = 0, fam = 0;
@@ -189,7 +189,7 @@ export default function AnalyticsView() {
     });
   }, [filtered]);
 
-  // 🏙️ GRÁFICO 3: Distribución por barrio
+  // 🏙️ GRÁFICO 3: Distribución por barrio (Con nombres limpios y sin recortes)
   const dynamicRiskByBarrio = useMemo(() => {
     const barrioMap: Record<string, { estable: number; acompanamiento: number; critico: number }> = {};
 
@@ -205,12 +205,38 @@ export default function AnalyticsView() {
     });
 
     return Object.keys(barrioMap).map((b) => ({
-      barrio: b.length > 12 ? b.substring(0, 10) + '…' : b,
+      barrio: b.length > 14 ? b.substring(0, 12) + '…' : b,
       estable: barrioMap[b].estable,
       acompanamiento: barrioMap[b].acompanamiento,
       critico: barrioMap[b].critico,
     }));
   }, [students]);
+
+  // 🎓 GRÁFICO 4 (NUEVO): Distribución de Riesgo según Grado Académico
+  const riskByGradeData = useMemo(() => {
+    const gradeMap: Record<string, { estable: number; acompanamiento: number; critico: number }> = {
+      '9°': { estable: 0, acompanamiento: 0, critico: 0 },
+      '10°': { estable: 0, acompanamiento: 0, critico: 0 },
+      '11°': { estable: 0, acompanamiento: 0, critico: 0 },
+    };
+
+    filtered.forEach((s) => {
+      const g = s.grade || '10°';
+      if (!gradeMap[g]) {
+        gradeMap[g] = { estable: 0, acompanamiento: 0, critico: 0 };
+      }
+
+      if (s.riskLevel === 'critico') gradeMap[g].critico += 1;
+      else if (s.riskLevel === 'acompanamiento') gradeMap[g].acompanamiento += 1;
+      else gradeMap[g].estable += 1;
+    });
+
+    return [
+      { grado: 'Grado 9.º', ...gradeMap['9°'] },
+      { grado: 'Grado 10.º', ...gradeMap['10°'] },
+      { grado: 'Grado 11.º', ...gradeMap['11°'] },
+    ];
+  }, [filtered]);
 
   const getRecommendedRoute = (student: StudentRecord) => {
     if (student.riskLevel === 'critico') {
@@ -390,8 +416,8 @@ export default function AnalyticsView() {
         <KpiCard icon={<TrendingUp className="w-5 h-5" />} label="Riesgo Crítico" value={`${counts.critico}`} accent="error" />
       </div>
 
-      {/* Gráficas Recharts Sincronizadas */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+      {/* Gráficas Recharts Sincronizadas (Cuadrícula 2x2) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         <ChartCard title="Análisis del Riesgo por Dimensiones (%)">
           <ResponsiveContainer width="100%" height={260}>
             <BarChart data={riskDimensionsData} layout="vertical" margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
@@ -419,16 +445,40 @@ export default function AnalyticsView() {
           </ResponsiveContainer>
         </ChartCard>
 
+        {/* Gráfica Ajustada: Distribución por Barrio */}
         <ChartCard title="Distribución por barrio (Comuna 4)">
-          <ResponsiveContainer width="100%" height={260}>
-            <BarChart data={dynamicRiskByBarrio} margin={{ top: 10, right: 10, left: -20, bottom: 25 }}>
+          <ResponsiveContainer width="100%" height={280}>
+            <BarChart data={dynamicRiskByBarrio} margin={{ top: 10, right: 10, left: -20, bottom: 45 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-              <XAxis dataKey="barrio" tick={{ fontSize: 10, fill: '#64748b' }} angle={-35} textAnchor="end" height={60} interval={0} />
+              <XAxis
+                dataKey="barrio"
+                tick={{ fontSize: 10, fill: '#64748b' }}
+                angle={-30}
+                textAnchor="end"
+                height={80}
+                interval={0}
+              />
               <YAxis tick={{ fontSize: 12, fill: '#64748b' }} />
               <Tooltip contentStyle={{ borderRadius: 12, border: '1px solid #e2e8f0', fontSize: 12 }} />
               <Bar dataKey="estable" stackId="a" fill="#10b981" name="Bajo" />
               <Bar dataKey="acompanamiento" stackId="a" fill="#f59e0b" name="Medio" />
               <Bar dataKey="critico" stackId="a" fill="#ef4444" name="Alto/Crítico" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </ChartCard>
+
+        {/* Gráfica Nueva: Nivel de Riesgo por Grado Académico */}
+        <ChartCard title="Nivel de Riesgo por Grado Académico (9.º - 11.º)">
+          <ResponsiveContainer width="100%" height={280}>
+            <BarChart data={riskByGradeData} margin={{ top: 10, right: 10, left: -20, bottom: 10 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+              <XAxis dataKey="grado" tick={{ fontSize: 12, fill: '#64748b' }} />
+              <YAxis tick={{ fontSize: 12, fill: '#64748b' }} />
+              <Tooltip contentStyle={{ borderRadius: 12, border: '1px solid #e2e8f0', fontSize: 12 }} />
+              <Legend wrapperStyle={{ fontSize: 12 }} />
+              <Bar dataKey="estable" fill="#10b981" name="Riesgo Bajo / Estable" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="acompanamiento" fill="#f59e0b" name="Acompañamiento" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="critico" fill="#ef4444" name="Riesgo Crítico" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </ChartCard>
@@ -652,7 +702,7 @@ export default function AnalyticsView() {
           )}
         </div>
 
-        {/* 📄 Barra de Paginación (Siguiente / Anterior cada 15 registros) */}
+        {/* Barra de Paginación */}
         {filtered.length > 0 && (
           <div className="px-5 py-4 bg-slate-50 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-600">
             <div>
