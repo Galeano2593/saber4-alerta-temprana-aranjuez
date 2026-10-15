@@ -31,13 +31,19 @@ const FAQ_DATABASE: Record<string, { text: string; links?: { label: string; url:
     ],
     followUps: ['¿Qué carreras ofrece el ITM?', '¿Qué es la Articulación Media SENA?']
   },
-  'itm_software': {
-    text: 'El **Instituto Tecnológico Metropolitano (ITM)** cuenta con programas acreditados de alta calidad para los jóvenes de la Comuna 4:\n\n• **Tecnología en Desarrollo de Software** (Modalidad Presencial y Virtual).\n• **Ingeniería de Sistemas / Software** (Continuación de ciclo propedéutico).\n• **Sedes Cercanas:** Fraternidad (Boston) y Robledo.\n\n*Nota para docentes:* Se pueden programar visitas guiadas a los laboratorios de software para estudiantes de 10.º y 11.º.',
+ 'itm_software': {
+    text: 'El **Instituto Tecnológico Metropolitano (ITM)** ofrece una amplia oferta académica de pregrados (tecnologías e ingenierías/licenciaturas) agrupada en sus 4 facultades principales:\n\n' +
+          '• **Ingenierías:** Tecnología en Desarrollo de Software, Ingeniería de Sistemas, Mecatrónica, Electrónica, Telecomunicaciones, Biomédica e Ingeniería Industrial.\n' +
+          '• **Ciencias Económicas y Administrativas:** Ciencias de la Información (Bibliotecología/Archivística), Control de Calidad, Gestión Administrativa y Finanzas.\n' +
+          '• **Artes y Humanidades:** Licenciatura en Educación Artística, Artes Visuales, Artes de la Grabación y Producción Musical, e Interpretación/Traducción LSC.\n' +
+          '• **Ciencias Exactas y Aplicadas:** Química Industrial y Análisis Químico.\n\n' +
+          '• **Sedes Principales:** Fraternidad (Boston/Comuna 8 - muy cercana a Aranjuez), Robledo, Castilla y La Floresta.\n\n' +
+          '**Nota para docentes:** Las instituciones educativas públicas de la Comuna 4 pueden solicitar convenios de articulación con la media y visitas guiadas a laboratorios y laboratorios de software para estudiantes de 10.º y 11.º.',
     links: [
-      { label: 'Inscripciones y Programas ITM', url: 'https://www.itm.edu.co' },
-      { label: 'Portal de Admisiones ITM', url: 'https://www.itm.edu.co/admisiones/' }
+      { label: 'Ver Oferta Completa de Programas ITM', url: 'https://www.itm.edu.co/programas/' },
+      { label: 'Portal de Admisiones e Inscripciones ITM', url: 'https://www.itm.edu.co/admisiones/' }
     ],
-    followUps: ['¿Cómo postular a Becas Sapiencia?', '¿Cómo cargar datos en la plataforma SIAD?']
+    followUps: ['¿Cómo postular a Becas Sapiencia?', '¿Qué es la Articulación Media SENA?']
   },
   'sena_empleo': {
     text: 'El **SENA y la Agencia Pública de Empleo de Medellín** brindan rutas de formación técnica e inserción laboral temprana:\n\n• **Articulación con la Media:** Técnicos en Sistemas, Programación de Software y Diseño Digital desde 10.º grado.\n• **Fondo Emprender y Empleo Joven:** Acompañamiento a egresados para vinculación laboral en empresas de tecnología y servicios de la ciudad.',
