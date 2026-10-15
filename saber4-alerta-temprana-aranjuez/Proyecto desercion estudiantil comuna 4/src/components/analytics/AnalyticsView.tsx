@@ -11,7 +11,7 @@ import {
   LineChart, Line, Legend,
 } from 'recharts';
 import {
-  STUDENTS, riskMeta,
+  riskMeta,
   type StudentRecord, type RiskLevel,
 } from '@/data/comuna4';
 
@@ -36,7 +36,7 @@ const OFFICIAL_BARRIOS_C4 = [
 ];
 
 export default function AnalyticsView() {
-  // Inicialización persistente leyendo desde localStorage si existe
+  // Inicialización persistente: si no hay datos en localStorage, inicia totalmente VACÍO
   const [students, setStudents] = useState<StudentRecord[]>(() => {
     const saved = localStorage.getItem('siad_students_data');
     if (saved) {
@@ -46,7 +46,7 @@ export default function AnalyticsView() {
         console.error('Error leyendo localStorage:', e);
       }
     }
-    return STUDENTS;
+    return []; // 👈 Inicia totalmente limpio si no hay archivo subido
   });
 
   const [loadedFileName, setLoadedFileName] = useState<string | null>(() => {
@@ -67,12 +67,12 @@ export default function AnalyticsView() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Función para restablecer/borrar la base de datos cargada
+  // Función para borrar totalmente los datos cargados y dejar la app limpia
   const handleResetDatabase = () => {
-    if (window.confirm('¿Está seguro de que desea borrar la base de datos actual y restablecer la vista inicial del sistema?')) {
+    if (window.confirm('¿Está seguro de que desea borrar todos los datos cargados y dejar el sistema completamente limpio?')) {
       localStorage.removeItem('siad_students_data');
       localStorage.removeItem('siad_file_name');
-      setStudents(STUDENTS);
+      setStudents([]); // 👈 Vacía la lista a 0 registros
       setLoadedFileName(null);
       clearAllFilters();
     }
@@ -175,7 +175,8 @@ export default function AnalyticsView() {
 
   // 📊 GRÁFICO 1: Análisis por dimensiones
   const riskDimensionsData = useMemo(() => {
-    const total = filtered.length || 1;
+    if (filtered.length === 0) return [];
+    const total = filtered.length;
     let acad = 0, econ = 0, pers = 0, fam = 0;
 
     filtered.forEach((s) => {
@@ -202,7 +203,8 @@ export default function AnalyticsView() {
 
   // 📈 GRÁFICO 2: Tendencia mensual
   const dynamicMonthlyTrend = useMemo(() => {
-    const total = filtered.length || 1;
+    if (filtered.length === 0) return [];
+    const total = filtered.length;
     const avgAttendance = Math.round(filtered.reduce((acc, s) => acc + s.attendance, 0) / total);
     const criticalCount = filtered.filter((s) => s.riskLevel === 'critico' || s.riskLevel === 'acompanamiento').length;
     const alertRate = Math.min(60, Math.max(10, Math.round((criticalCount / total) * 100)));
@@ -218,8 +220,9 @@ export default function AnalyticsView() {
     });
   }, [filtered]);
 
-  // 🏙️ GRÁFICO 3: Distribución por barrio (Con mapa oficial de Comuna 4)
+  // 🏙️ GRÁFICO 3: Distribución por barrio
   const dynamicRiskByBarrio = useMemo(() => {
+    if (students.length === 0) return [];
     const barrioMap: Record<string, { estable: number; acompanamiento: number; critico: number }> = {};
 
     students.forEach((s) => {
@@ -243,6 +246,7 @@ export default function AnalyticsView() {
 
   // 🎓 GRÁFICO 4: Distribución de Riesgo según Grado Académico
   const riskByGradeData = useMemo(() => {
+    if (filtered.length === 0) return [];
     const gradeMap: Record<string, { estable: number; acompanamiento: number; critico: number }> = {
       '9°': { estable: 0, acompanamiento: 0, critico: 0 },
       '10°': { estable: 0, acompanamiento: 0, critico: 0 },
@@ -278,6 +282,10 @@ export default function AnalyticsView() {
   };
 
   const exportToCSV = () => {
+    if (filtered.length === 0) {
+      alert('No hay datos para exportar.');
+      return;
+    }
     const headers = ['ID', 'Estudiante/Institución', 'Grado', 'Colegio', 'Barrio', 'Asistencia (%)', 'Promedio', 'Nivel de Riesgo', 'Ruta Recomendada', 'Acudiente', 'Teléfono Acudiente'];
 
     const rows = filtered.map((s) => {
@@ -584,11 +592,11 @@ export default function AnalyticsView() {
 
           <div className="flex items-center gap-2 flex-wrap">
             {/* Botón para Limpiar/Restablecer Base de Datos */}
-            {loadedFileName && (
+            {students.length > 0 && (
               <button
                 onClick={handleResetDatabase}
                 className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 text-sm font-semibold transition-all"
-                title="Limpiar base cargada y volver al estado inicial"
+                title="Limpiar base de datos cargada"
               >
                 <Trash2 className="w-4 h-4" />
                 Limpiar Datos
@@ -746,8 +754,18 @@ export default function AnalyticsView() {
               })}
             </tbody>
           </table>
+
+          {/* Estado Limpio / Sin Datos */}
           {filtered.length === 0 && (
-            <div className="py-12 text-center text-slate-400 text-sm">No hay registros que coincidan con los filtros.</div>
+            <div className="py-16 text-center flex flex-col items-center justify-center">
+              <div className="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mb-3">
+                <FileSpreadsheet className="w-6 h-6" />
+              </div>
+              <p className="text-sm font-semibold text-slate-700">No hay datos cargados en el sistema</p>
+              <p className="text-xs text-slate-400 mt-1 max-w-sm">
+                Haz clic en el botón <strong>"Cargar Excel / CSV"</strong> para importar la información de los estudiantes de tu institución.
+              </p>
+            </div>
           )}
         </div>
 
