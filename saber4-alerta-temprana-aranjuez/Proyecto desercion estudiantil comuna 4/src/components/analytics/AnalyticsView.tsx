@@ -1,10 +1,10 @@
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import * as XLSX from 'xlsx';
 import {
   UploadCloud, FileSpreadsheet, Filter, Bell, Search, CheckCircle2,
   TrendingUp, AlertTriangle, Users, X, BookOpen, GraduationCap, ShieldAlert,
-  Download, School, RotateCcw
+  Download, School, RotateCcw, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -14,6 +14,8 @@ import {
   STUDENTS, riskMeta,
   type StudentRecord, type RiskLevel,
 } from '@/data/comuna4';
+
+const ITEMS_PER_PAGE = 15;
 
 export default function AnalyticsView() {
   // Inicialización persistente leyendo desde localStorage si existe
@@ -41,6 +43,9 @@ export default function AnalyticsView() {
   const [uploadOpen, setUploadOpen] = useState(false);
   const [notifyingId, setNotifyingId] = useState<string | null>(null);
   const [notifiedIds, setNotifiedIds] = useState<Set<string>>(new Set());
+
+  // Estado para la Paginación
+  const [currentPage, setCurrentPage] = useState<number>(1);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -98,6 +103,18 @@ export default function AnalyticsView() {
     });
   }, [students, schoolFilter, barrioFilter, riskFilter, gradeFilter, search]);
 
+  // Reiniciar a la página 1 cuando cambia cualquier filtro o búsqueda
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [schoolFilter, barrioFilter, riskFilter, gradeFilter, search, students]);
+
+  // Cálculo de Paginación
+  const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE) || 1;
+  const paginatedStudents = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filtered.slice(start, start + ITEMS_PER_PAGE);
+  }, [filtered, currentPage]);
+
   // Identifica si hay algún filtro activo
   const hasActiveFilters = useMemo(() => {
     return (
@@ -154,7 +171,7 @@ export default function AnalyticsView() {
     ];
   }, [filtered]);
 
-  // 📈 GRÁFICO 2: Tendencia mensual acoplada a la asistencia y riesgo promedio
+  // 📈 GRÁFICO 2: Tendencia mensual
   const dynamicMonthlyTrend = useMemo(() => {
     const total = filtered.length || 1;
     const avgAttendance = Math.round(filtered.reduce((acc, s) => acc + s.attendance, 0) / total);
@@ -172,7 +189,7 @@ export default function AnalyticsView() {
     });
   }, [filtered]);
 
-  // 🏙️ GRÁFICO 3: Distribución por barrio calculada en tiempo real
+  // 🏙️ GRÁFICO 3: Distribución por barrio
   const dynamicRiskByBarrio = useMemo(() => {
     const barrioMap: Record<string, { estable: number; acompanamiento: number; critico: number }> = {};
 
@@ -250,7 +267,7 @@ export default function AnalyticsView() {
     }, 2000);
   };
 
-  // Procesamiento corregido de Excel/CSV
+  // Procesamiento de Excel/CSV
   const processExcelFile = (file: File) => {
     const reader = new FileReader();
 
@@ -498,7 +515,7 @@ export default function AnalyticsView() {
         </div>
       </div>
 
-      {/* 🎯 Indicador de "Filtros Activos" */}
+      {/* Indicador de Filtros Activos */}
       <AnimatePresence>
         {hasActiveFilters && (
           <motion.div
@@ -574,7 +591,7 @@ export default function AnalyticsView() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {filtered.map((s) => {
+              {paginatedStudents.map((s) => {
                 const meta = riskMeta[s.riskLevel];
                 const notified = notifiedIds.has(s.id);
                 const route = getRecommendedRoute(s);
@@ -634,6 +651,47 @@ export default function AnalyticsView() {
             <div className="py-12 text-center text-slate-400 text-sm">No hay registros que coincidan con los filtros.</div>
           )}
         </div>
+
+        {/* 📄 Barra de Paginación (Siguiente / Anterior cada 15 registros) */}
+        {filtered.length > 0 && (
+          <div className="px-5 py-4 bg-slate-50 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-600">
+            <div>
+              Mostrando del{' '}
+              <strong className="font-semibold text-slate-800">
+                {(currentPage - 1) * ITEMS_PER_PAGE + 1}
+              </strong>{' '}
+              al{' '}
+              <strong className="font-semibold text-slate-800">
+                {Math.min(currentPage * ITEMS_PER_PAGE, filtered.length)}
+              </strong>{' '}
+              de <strong className="font-semibold text-slate-800">{filtered.length}</strong> estudiantes
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white border border-slate-200 font-semibold text-slate-700 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed shadow-sm transition-all"
+              >
+                <ChevronLeft className="w-4 h-4" />
+                Anterior
+              </button>
+
+              <span className="px-3 py-1.5 font-bold text-slate-700 bg-white border border-slate-200 rounded-lg shadow-sm">
+                Página {currentPage} de {totalPages}
+              </span>
+
+              <button
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white border border-slate-200 font-semibold text-slate-700 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed shadow-sm transition-all"
+              >
+                Siguiente
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Modal de Carga */}
