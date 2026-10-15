@@ -1,11 +1,11 @@
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Users, Building2, ShieldCheck, TrendingUp, MapPin } from 'lucide-react';
-import { STUDENTS, type StudentRecord } from '@/data/comuna4';
+import { type StudentRecord } from '@/data/comuna4';
 
 export default function Hero() {
-  // Carga dinámica desde localStorage (los datos guardados desde AnalyticsView)
-  const [students] = useState<StudentRecord[]>(() => {
+  // Estado dinámico iniciado totalmente VACÍO si no hay nada en localStorage
+  const [students, setStudents] = useState<StudentRecord[]>(() => {
     const saved = localStorage.getItem('siad_students_data');
     if (saved) {
       try {
@@ -14,10 +14,35 @@ export default function Hero() {
         console.error('Error leyendo localStorage en Hero:', e);
       }
     }
-    return STUDENTS;
+    return []; // 👈 Si está limpio, inicia en 0 (sin fallback a STUDENTS)
   });
 
-  // Métricas calculadas en tiempo real a partir del Excel de Colab
+  // Escuchar cambios en localStorage (cuando el usuario sube un Excel o da clic en Limpiar Datos)
+  useEffect(() => {
+    const handleStorageChange = () => {
+      const saved = localStorage.getItem('siad_students_data');
+      if (saved) {
+        try {
+          setStudents(JSON.parse(saved));
+        } catch (e) {
+          setStudents([]);
+        }
+      } else {
+        setStudents([]); // 👈 Si se borró el storage, se limpia a 0
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    // Intervalo de verificación rápida para sincronización inmediata entre pestañas/vistas
+    const interval = setInterval(handleStorageChange, 1000);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      clearInterval(interval);
+    };
+  }, []);
+
+  // Métricas calculadas dinámicamente
   const metrics = useMemo(() => {
     const totalStudents = students.length;
 
@@ -26,15 +51,18 @@ export default function Hero() {
     students.forEach((s) => {
       if (s.school) schoolsSet.add(s.school.trim());
     });
-    const totalSchools = schoolsSet.size || 14;
+
+    // Si hay datos cargados muestra los colegios únicos detectados; si está limpio, muestra la cobertura oficial de 13 I.E.
+    const totalSchools = schoolsSet.size > 0 ? schoolsSet.size : 13;
 
     // Porcentaje de atención / estabilidad preventiva
     const establesCount = students.filter(
       (s) => s.riskLevel === 'estable' || s.riskLevel === 'acompanamiento'
     ).length;
+
     const attendedPercentage = totalStudents > 0 
       ? Math.round((establesCount / totalStudents) * 100) 
-      : 85;
+      : 0; // 👈 Marca 0% cuando la base está limpia
 
     return {
       totalStudents,
@@ -114,9 +142,11 @@ export default function Hero() {
               <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
                 <ShieldCheck className="w-6 h-6" />
               </div>
-              <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-full">
-                <TrendingUp className="w-3 h-3" /> +3%
-              </span>
+              {metrics.totalStudents > 0 && (
+                <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-full">
+                  <TrendingUp className="w-3 h-3" /> +3%
+                </span>
+              )}
             </div>
             <p className="font-display text-4xl sm:text-5xl font-black text-white tracking-tight">
               {metrics.attendedPercentage}%
