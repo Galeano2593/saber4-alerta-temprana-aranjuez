@@ -4,7 +4,7 @@ import * as XLSX from 'xlsx';
 import {
   UploadCloud, FileSpreadsheet, Filter, Bell, Search, CheckCircle2,
   TrendingUp, AlertTriangle, Users, X, BookOpen, GraduationCap, ShieldAlert,
-  Download, School, RotateCcw, ChevronLeft, ChevronRight
+  Download, School, RotateCcw, ChevronLeft, ChevronRight, Trash2
 } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -66,6 +66,17 @@ export default function AnalyticsView() {
   const [currentPage, setCurrentPage] = useState<number>(1);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Función para restablecer/borrar la base de datos cargada
+  const handleResetDatabase = () => {
+    if (window.confirm('¿Está seguro de que desea borrar la base de datos actual y restablecer la vista inicial del sistema?')) {
+      localStorage.removeItem('siad_students_data');
+      localStorage.removeItem('siad_file_name');
+      setStudents(STUDENTS);
+      setLoadedFileName(null);
+      clearAllFilters();
+    }
+  };
 
   // Extrae dinámicamente los colegios presentes en los datos
   const dynamicSchools = useMemo(() => {
@@ -325,7 +336,15 @@ export default function AnalyticsView() {
 
         if (rawMatrix.length > 0) {
           const parsedStudents: StudentRecord[] = rawMatrix.map((row, idx) => {
-            const nameVal = row.Estudiante || row.estudiante || row.nombre_institucion_due || row.establecimiento_educativo || `Estudiante #${idx + 1}`;
+            const nameVal = 
+              row['Estudiante/Registro'] || 
+              row['Estudiante/registro'] || 
+              row.Estudiante || 
+              row.estudiante || 
+              row.nombre_institucion_due || 
+              row.establecimiento_educativo || 
+              `Estudiante #${idx + 1}`;
+
             const genderTag = row.sexo ? ` (${row.sexo === 'hombres' ? 'Masc.' : row.sexo === 'mujeres' ? 'Fem.' : row.sexo})` : '';
             const fullName = `${nameVal}${genderTag}`;
 
@@ -563,7 +582,19 @@ export default function AnalyticsView() {
             />
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Botón para Limpiar/Restablecer Base de Datos */}
+            {loadedFileName && (
+              <button
+                onClick={handleResetDatabase}
+                className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 text-sm font-semibold transition-all"
+                title="Limpiar base cargada y volver al estado inicial"
+              >
+                <Trash2 className="w-4 h-4" />
+                Limpiar Datos
+              </button>
+            )}
+
             <button
               onClick={exportToCSV}
               className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold border border-slate-200 shadow-sm transition-all"
