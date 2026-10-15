@@ -30,7 +30,7 @@ function Footer() {
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary-500 to-accent-500 flex items-center justify-center">
               <Heart className="w-4 h-4 text-white" />
             </div>
-            <span className="font-display font-bold text-white">Saber4</span>
+            <span className="font-display font-bold text-white">SIAD ARANJUEZ</span>
           </div>
           <p className="text-sm text-slate-400 text-center sm:text-right">
             Red de Alerta Temprana y Futuro Educativo · Comuna 4 Aranjuez, Medellín
