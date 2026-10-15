@@ -17,6 +17,24 @@ import {
 
 const ITEMS_PER_PAGE = 15;
 
+// 🏙️ Lista Oficial de los 14 Barrios de la Comuna 4 (Aranjuez)
+const OFFICIAL_BARRIOS_C4 = [
+  'ARANJUEZ',
+  'BERLÍN',
+  'SAN ISIDRO',
+  'PALERMO',
+  'LOS ÁLAMOS',
+  'MORAVIA',
+  'SEVILLA',
+  'SAN PEDRO',
+  'MANRIQUE CENTRAL N.º 1',
+  'LAS ESMERALDAS',
+  'LA PIÑUELA',
+  'BRASILIA',
+  'MIRANDA',
+  'CAMPO VALDÉS N.º 1',
+];
+
 export default function AnalyticsView() {
   // Inicialización persistente leyendo desde localStorage si existe
   const [students, setStudents] = useState<StudentRecord[]>(() => {
@@ -60,9 +78,9 @@ export default function AnalyticsView() {
     return Array.from(schoolsSet).sort();
   }, [students]);
 
-  // Extrae dinámicamente los barrios presentes en los datos
+  // Asegura la lista oficial de barrios de la Comuna 4 fusionada con datos existentes
   const dynamicBarrios = useMemo(() => {
-    const barriosSet = new Set<string>();
+    const barriosSet = new Set<string>(OFFICIAL_BARRIOS_C4);
     students.forEach((s) => {
       if (s.barrio) {
         barriosSet.add(s.barrio.trim().toUpperCase());
@@ -189,7 +207,7 @@ export default function AnalyticsView() {
     });
   }, [filtered]);
 
-  // 🏙️ GRÁFICO 3: Distribución por barrio (Con nombres limpios y sin recortes)
+  // 🏙️ GRÁFICO 3: Distribución por barrio (Con mapa oficial de Comuna 4)
   const dynamicRiskByBarrio = useMemo(() => {
     const barrioMap: Record<string, { estable: number; acompanamiento: number; critico: number }> = {};
 
@@ -212,7 +230,7 @@ export default function AnalyticsView() {
     }));
   }, [students]);
 
-  // 🎓 GRÁFICO 4 (NUEVO): Distribución de Riesgo según Grado Académico
+  // 🎓 GRÁFICO 4: Distribución de Riesgo según Grado Académico
   const riskByGradeData = useMemo(() => {
     const gradeMap: Record<string, { estable: number; acompanamiento: number; critico: number }> = {
       '9°': { estable: 0, acompanamiento: 0, critico: 0 },
@@ -467,7 +485,7 @@ export default function AnalyticsView() {
           </ResponsiveContainer>
         </ChartCard>
 
-        {/* Gráfica Nueva: Nivel de Riesgo por Grado Académico */}
+        {/* Gráfica Nivel de Riesgo por Grado Académico */}
         <ChartCard title="Nivel de Riesgo por Grado Académico (9.º - 11.º)">
           <ResponsiveContainer width="100%" height={280}>
             <BarChart data={riskByGradeData} margin={{ top: 10, right: 10, left: -20, bottom: 10 }}>
